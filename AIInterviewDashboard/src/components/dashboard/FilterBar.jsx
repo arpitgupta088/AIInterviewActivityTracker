@@ -4,7 +4,7 @@
  */
 
 import React from 'react';
-import { Row, Col, Form, InputGroup, Card } from 'react-bootstrap';
+import { Row, Col, Form, Card } from 'react-bootstrap';
 
 function FilterBar({ searchTerm, setSearchTerm, selectedEvent, setSelectedEvent }) {
   return (

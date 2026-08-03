@@ -46,3 +46,33 @@ export const getAllSessions = async () => {
   const response = await apiClient.get("/sessions");
   return response.data;
 }
+
+/**
+ * Retrieves interview summary by Session ID.
+ */
+export const getInterviewSummary = async (sessionId) => {
+  if (!sessionId?.trim()) {
+    throw new Error("Session ID is required.");
+  }
+
+  const response = await apiClient.get(
+    `/interview-summaries/${encodeURIComponent(sessionId.trim())}`
+  );
+
+  return response.data;
+};
+
+/**
+ * Generates interview summary for a session.
+ */
+export const generateInterviewSummary = async (sessionId) => {
+  if (!sessionId?.trim()) {
+    throw new Error("Session ID is required.");
+  }
+
+  const response = await apiClient.post(
+    `/interview-summaries/generate/${encodeURIComponent(sessionId.trim())}`
+  );
+
+  return response.data;
+};

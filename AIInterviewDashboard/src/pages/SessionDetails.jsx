@@ -1,15 +1,18 @@
 import { useEffect, useState } from "react";
 import { useParams } from "react-router-dom";
-import { Alert, Spinner } from "react-bootstrap";
+import { Alert, Button, Spinner } from "react-bootstrap";
 
 import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
 import SessionInfo from "../components/session/SessionInfo";
 import SessionEventTable from "../components/session/SessionEventTable";
+import InterviewSummaryCard from "../components/session/InterviewSummaryCard";
 
 import {
   getSessionById,
   getSessionEvents,
+  getInterviewSummary,
+  generateInterviewSummary,
 } from "../services/interviewService";
 
 /**
@@ -21,8 +24,30 @@ function SessionDetails() {
 
   const [sessionData, setSessionData] = useState(null);
   const [eventsData, setEventsData] = useState([]);
+  const [summaryData, setSummaryData] = useState(null);
+  const [generatingSummary, setGeneratingSummary] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const handleGenerateSummary = async () => {
+    try {
+      setGeneratingSummary(true);
+
+      await generateInterviewSummary(sessionId);
+
+      const summaryResponse = await getInterviewSummary(sessionId);
+
+      setSummaryData(summaryResponse?.data ?? null);
+    }
+    catch (error) {
+      console.error("Failed to generate summary:", error);
+
+      alert("Unable to generate summary.");
+    }
+    finally {
+      setGeneratingSummary(false);
+    }
+  };
 
   useEffect(() => {
     const fetchSessionDetails = async () => {
@@ -41,11 +66,23 @@ function SessionDetails() {
           getSessionEvents(sessionId),
         ]);
 
+        let summaryResponse = null;
+        try {
+          summaryResponse = await getInterviewSummary(sessionId);
+        } catch (error) {
+          if (error?.response?.status !== 404) {
+            throw error;
+          }
+        }
+
         const session = sessionResponse?.data ?? sessionResponse;
         const events = eventsResponse?.data ?? eventsResponse;
+        const summary = summaryResponse?.data ?? null;
 
         setSessionData(session ?? null);
         setEventsData(Array.isArray(events) ? events : []);
+        setSummaryData(summary);
+
       } catch (error) {
         console.error("Failed to load session details:", error);
 
@@ -94,42 +131,66 @@ function SessionDetails() {
     return (
       <>
         <SessionInfo session={sessionData} />
+
+        {!summaryData && (
+          <>
+            {sessionData.status?.trim().toLowerCase() === "completed" ? (
+              <div className="mb-3">
+                <Button
+                  variant="primary"
+                  onClick={handleGenerateSummary}
+                  disabled={generatingSummary}
+                >
+                  {generatingSummary
+                    ? "Generating Summary..."
+                    : "Generate Summary"}
+                </Button>
+              </div>
+            ) : (
+              <Alert variant="info" className="mb-3">
+                Interview summary will be available after the interview is completed.
+              </Alert>
+            )}
+          </>
+        )}
+
+        <InterviewSummaryCard summary={summaryData} />
         <SessionEventTable events={eventsData} />
       </>
     );
   };
 
-  return (
-    <>
-      <Navbar />
+        return (
+        <>
+          <Navbar />
 
-      <div className="container-fluid dashboard-container">
-        <div className="row g-0 dashboard-row">
+          <div className="container-fluid dashboard-container">
+            <div className="row g-0 dashboard-row">
 
-          <div className="col-md-3 col-lg-2 p-0 dashboard-sidebar-column">
-            <Sidebar />
-          </div>
+              <div className="col-md-3 col-lg-2 p-0 dashboard-sidebar-column">
+                <Sidebar />
+              </div>
 
-          <main className="col-md-9 col-lg-10 bg-light dashboard-main">
-            <div className="dashboard-content">
+              <main className="col-md-9 col-lg-10 bg-light dashboard-main">
+                <div className="dashboard-content">
 
-              <h2 className="fw-bold mb-1">
-                Session Details
-              </h2>
+                  <h2 className="fw-bold mb-1">
+                    Session Details
+                  </h2>
 
-              <p className="text-muted mb-4">
-                Interview Session: {sessionId}
-              </p>
+                  <p className="text-muted mb-4">
+                    Interview Session: {sessionId}
+                  </p>
 
-              {renderContent()}
+                  {renderContent()}
+
+                </div>
+              </main>
 
             </div>
-          </main>
-
-        </div>
-      </div>
-    </>
-  );
+          </div>
+        </>
+        );
 }
 
-export default SessionDetails;
+        export default SessionDetails;
