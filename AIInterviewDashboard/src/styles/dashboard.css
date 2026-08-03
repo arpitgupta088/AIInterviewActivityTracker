@@ -1,0 +1,68 @@
+/* Dashboard Wrapper */
+.dashboard-container {
+  min-height: 100vh;
+  padding-left: 0;
+  padding-right: 0;
+}
+
+.dashboard-row {
+  min-height: 100vh;
+  align-items: stretch;
+}
+
+/* Sidebar */
+.dashboard-sidebar-column {
+  display: flex;
+  background-color: #212529;
+}
+
+.sidebar {
+  width: 100%;
+  flex: 1;
+}
+
+/* Main Content */
+.dashboard-main {
+  min-width: 0;
+  min-height: 100vh;
+  padding-bottom: 2rem;
+}
+
+.dashboard-content {
+  width: 100%;
+  padding: 1.5rem;
+}
+
+.dashboard-content .card {
+  max-width: 100%;
+}
+
+/* Tablet */
+@media (min-width: 768px) and (max-width: 991.98px) {
+  .dashboard-content {
+    padding: 1.25rem;
+  }
+}
+
+/* Mobile */
+@media (max-width: 767.98px) {
+  .dashboard-row {
+    min-height: auto;
+  }
+
+  .dashboard-sidebar-column {
+    display: block;
+  }
+
+  .sidebar {
+    width: 100%;
+  }
+
+  .dashboard-main {
+    min-height: auto;
+  }
+
+  .dashboard-content {
+    padding: 1rem;
+  }
+}
