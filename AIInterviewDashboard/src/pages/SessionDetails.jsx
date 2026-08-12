@@ -7,6 +7,8 @@ import Sidebar from "../components/layout/Sidebar";
 import SessionInfo from "../components/session/SessionInfo";
 import SessionEventTable from "../components/session/SessionEventTable";
 import InterviewSummaryCard from "../components/session/InterviewSummaryCard";
+import SessionRecordings from "../components/session/SessionRecordings";
+import recordingService from "../services/recordingService";
 
 import {
   getSessionById,
@@ -26,6 +28,9 @@ function SessionDetails() {
   const [eventsData, setEventsData] = useState([]);
   const [summaryData, setSummaryData] = useState(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
+  const [recordings, setRecordings] = useState([]);
+  const [recordingsLoading, setRecordingsLoading] = useState(false);
+  const [recordingsError, setRecordingsError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
@@ -61,10 +66,15 @@ function SessionDetails() {
         setLoading(true);
         setError("");
 
-        const [sessionResponse, eventsResponse] = await Promise.all([
+        const [sessionResponse, eventsResponse, recordingsResponse] = await Promise.all([
           getSessionById(sessionId),
           getSessionEvents(sessionId),
+
+          recordingService.getRecordingsBySessionId(sessionId),
         ]);
+
+        const recordings = recordingsResponse ?? [];
+        setRecordings(recordings);
 
         let summaryResponse = null;
         try {
@@ -155,42 +165,52 @@ function SessionDetails() {
         )}
 
         <InterviewSummaryCard summary={summaryData} />
+        <SessionRecordings
+          recordings={recordings}
+          loading={recordingsLoading}
+          error={recordingsError}
+          getStreamUrl={(recordingId) => recordingService.getRecordingStreamUrl(recordingId)}
+          onDelete={async (recordingId) => {
+            await recordingService.deleteRecording(recordingId);
+            setRecordings((currentRecordings) => currentRecordings.filter((recording) => recording.id !== recordingId));
+          }}
+        />
         <SessionEventTable events={eventsData} />
       </>
     );
   };
 
-        return (
-        <>
-          <Navbar />
+  return (
+    <>
+      <Navbar />
 
-          <div className="container-fluid dashboard-container">
-            <div className="row g-0 dashboard-row">
+      <div className="container-fluid dashboard-container">
+        <div className="row g-0 dashboard-row">
 
-              <div className="col-md-3 col-lg-2 p-0 dashboard-sidebar-column">
-                <Sidebar />
-              </div>
+          <div className="col-md-3 col-lg-2 p-0 dashboard-sidebar-column">
+            <Sidebar />
+          </div>
 
-              <main className="col-md-9 col-lg-10 bg-light dashboard-main">
-                <div className="dashboard-content">
+          <main className="col-md-9 col-lg-10 bg-light dashboard-main">
+            <div className="dashboard-content">
 
-                  <h2 className="fw-bold mb-1">
-                    Session Details
-                  </h2>
+              <h2 className="fw-bold mb-1">
+                Session Details
+              </h2>
 
-                  <p className="text-muted mb-4">
-                    Interview Session: {sessionId}
-                  </p>
+              <p className="text-muted mb-4">
+                Interview Session: {sessionId}
+              </p>
 
-                  {renderContent()}
-
-                </div>
-              </main>
+              {renderContent()}
 
             </div>
-          </div>
-        </>
-        );
+          </main>
+
+        </div>
+      </div>
+    </>
+  );
 }
 
-        export default SessionDetails;
+export default SessionDetails;

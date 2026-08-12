@@ -76,3 +76,66 @@ export const generateInterviewSummary = async (sessionId) => {
 
   return response.data;
 };
+
+export const createInterviewSession = async (data) => {
+  const response = await apiClient.post("/sessions", data);
+  return response.data;
+};
+
+export const createActivityEvent = async (data) => {
+  const response = await apiClient.post("/activities", data);
+  return response.data;
+};
+
+export const updateSessionStatus = async (data) => {
+  const response = await apiClient.patch("/sessions/status", data);
+  return response.data;
+};
+
+/**
+ * Uploads a recorded interview response for a specific question.
+ */
+export const uploadRecording = async ({
+  sessionId,
+  candidateId,
+  questionNumber,
+  blob,
+}) => {
+  if (!sessionId?.trim()) {
+    throw new Error("Session ID is required.");
+  }
+
+  if (!candidateId?.trim()) {
+    throw new Error("Candidate ID is required.");
+  }
+
+  if (!Number.isInteger(questionNumber) || questionNumber <= 0) {
+    throw new Error("Question number must be a positive integer.");
+  }
+
+  if (!(blob instanceof Blob) || blob.size <= 0) {
+    throw new Error("A valid recording is required.");
+  }
+
+  const file = new File(
+    [blob],
+    `question-${questionNumber}.webm`,
+    {
+      type: blob.type || "video/webm",
+    }
+  );
+
+  const formData = new FormData();
+
+  formData.append("SessionId", sessionId.trim());
+  formData.append("CandidateId", candidateId.trim());
+  formData.append("QuestionNumber", questionNumber.toString());
+  formData.append("Recording", file);
+
+  const response = await apiClient.post(
+    "/recordings/upload",
+    formData
+  );
+
+  return response.data;
+};

@@ -4,10 +4,7 @@ import axios from "axios";
  * Central Axios client used for communication with the backend API.
  */
 const apiClient = axios.create({
-  baseURL: "https://localhost:7026/api/v1",
-  headers: {
-    "Content-Type": "application/json",
-  },
+  baseURL: import.meta.env.VITE_API_BASE_URL,
   timeout: 10000,
 });
 

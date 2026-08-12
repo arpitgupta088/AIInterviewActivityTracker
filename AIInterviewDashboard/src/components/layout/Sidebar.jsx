@@ -33,6 +33,14 @@ function Sidebar() {
                     Sessions
                 </Nav.Link>
 
+                <Nav.Link
+                    as={NavLink}
+                    to="/interview"
+                    className="text-white"
+                >
+                    Mock Interview
+                </Nav.Link>
+
             </Nav>
         </div>
     );
