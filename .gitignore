@@ -10,3 +10,12 @@
 # Environment / secrets
 .env
 .env.*
+
+# Interview question videos
+AIInterviewDashboard/public/videos/
+
+# Candidate question recordings
+AIInterviewActivityTracker/wwwroot/uploads/recordings/
+
+# Complete interview session recordings
+AIInterviewActivityTracker/wwwroot/uploads/session-recordings/
