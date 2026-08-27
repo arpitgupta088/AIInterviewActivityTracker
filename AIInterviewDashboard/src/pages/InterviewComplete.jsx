@@ -8,6 +8,17 @@ import {
   Row,
 } from "react-bootstrap";
 
+/**
+ * Displays the final status of an interview session.
+ *
+ * Input:
+ * - Reads session information and interview status from router state.
+ *
+ * Output:
+ * - Renders the completed or aborted interview confirmation
+ *   with session details and a dashboard navigation option.
+ */
+
 function InterviewComplete() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -27,6 +38,7 @@ function InterviewComplete() {
     candidateId,
     interviewId,
     email,
+    status,
   } = state;
 
   return (
@@ -41,11 +53,14 @@ function InterviewComplete() {
             <Card.Body className="text-center p-5">
 
               <h2 className="mb-3">
-                Interview Completed
+                {status === "ABORTED"
+                ?"Interview Aborted":"Interview Completed"}
               </h2>
 
               <p className="text-muted">
-                Thank you for completing your AI Interview.
+                {status === "ABORTED"
+                ? "The interview was ended before all the questions were completed."
+                : "Thank you for completing your AI Interview."}
               </p>
 
               <hr />
@@ -66,8 +81,10 @@ function InterviewComplete() {
                 <strong>Email:</strong> {email}
               </p>
 
-              <Alert variant="success" className="mt-4">
-                Your interview has been submitted successfully.
+              <Alert variant={status === "ABORTED" ? "warning" : "success"} className="mt-4">
+                {status === "ABORTED"
+                ? "The interview session has been ended."
+                :"Your interview has been submitted successfully."}
               </Alert>
 
               <Button

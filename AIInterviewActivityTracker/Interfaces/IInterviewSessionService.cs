@@ -1,4 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs.InterviewSession;
+using AIInterviewActivityTracker.DTOs.InterviewSession;
 
 namespace AIInterviewActivityTracker.Interfaces
 {
@@ -7,10 +7,37 @@ namespace AIInterviewActivityTracker.Interfaces
     /// </summary>
     public interface IInterviewSessionService
     {
-        Task<InterviewSessionResponse> CreateSessionAsync(CreateInterviewSessionRequest request);
+        /// <summary>
+        /// Creates a new interview tracking session.
+        /// </summary>
+        Task<InterviewSessionResponse> CreateSessionAsync(
+            CreateInterviewSessionRequest request);
 
-        Task<InterviewSessionResponse?> GetSessionByIdAsync(string sessionId);
+        /// <summary>
+        /// Retrieves an interview session by its unique SessionId.
+        /// </summary>
+        Task<InterviewSessionResponse?> GetSessionByIdAsync(
+            string sessionId);
 
-        Task<bool> UpdateSessionStatusAsync(UpdateInterviewSessionRequest request);
+        /// <summary>
+        /// Updates the lifecycle status of an interview session.
+        /// </summary>
+        Task<bool> UpdateSessionStatusAsync(
+            UpdateInterviewSessionRequest request);
+
+        /// <summary>
+        /// Returns the total number of interview sessions.
+        /// </summary>
+        Task<long> GetTotalSessionCountAsync();
+
+        /// <summary>
+        /// Returns the number of sessions matching the supplied status.
+        /// </summary>
+        Task<long> GetSessionCountByStatusAsync(string status);
+
+        /// <summary>
+        /// Retrieves all interview sessions ordered by start time descending.
+        /// </summary>
+        Task<IEnumerable<InterviewSessionResponse>> GetAllSessionsAsync();
     }
 }

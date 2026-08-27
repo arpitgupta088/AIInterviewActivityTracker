@@ -16,7 +16,11 @@ namespace AIInterviewActivityTracker.Validators
 
             RuleFor(x => x.Status)
                 .NotEmpty()
-                .MaximumLength(50);
+                .Must(status =>
+                    status == "IN_PROGRESS" ||
+                    status == "COMPLETED" ||
+                    status == "ABORTED")
+                .WithMessage("Invalid session status.");
         }
     }
 }

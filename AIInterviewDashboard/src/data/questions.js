@@ -7,7 +7,7 @@ const questions = [
   {
     id: 2,
     title: "Tell me about your strengths.",
-    video: "/videos/q2.mp4"
+    video: "/videos/q2-invalid.mp4"
   },
   {
     id: 3,

@@ -21,5 +21,26 @@ namespace AIInterviewActivityTracker.Interfaces
         /// Retrieves all activity events associated with a session.
         /// </summary>
         Task<List<ActivityEvent>> GetEventsBySessionIdAsync(string sessionId);
+
+        /// <summary>
+        /// Retrieves the most recent activity events across all sessions.
+        /// </summary>
+        Task<List<ActivityEvent>> GetRecentEventsAsync(int limit);
+
+        /// <summary>
+        /// Retrieves the total count of all activity events in the database.
+        /// </summary>
+        Task<long> GetTotalEventsCountAsync();
+
+        /// <summary>
+        /// Retrieves filtered activity events along with the total matching count.
+        /// </summary>
+        Task<(List<ActivityEvent> Events, long TotalCount)> GetFilteredEventsAsync(
+            string? sessionId,
+            string? eventType,
+            DateTime? startDate,
+            DateTime? endDate,
+            int page,
+            int pageSize);
     }
 }

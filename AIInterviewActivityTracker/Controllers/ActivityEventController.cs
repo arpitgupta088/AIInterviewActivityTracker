@@ -73,5 +73,62 @@ namespace AIInterviewActivityTracker.Controllers
                     events,
                     $"Retrieved {events.Count} event(s)."));
         }
+
+        /// <summary>
+        /// Logs an activity event received through the browser Beacon API.
+        /// </summary>
+        [HttpPost("beacon")]
+        public async Task<IActionResult> LogBeaconEvent(
+            [FromForm] CreateActivityEventRequest request)
+        {
+            if (!ModelState.IsValid)
+            {
+                return BadRequest(
+                    ApiResponseDto<string>.CreateFailure(
+                        "Invalid beacon payload."));
+            }
+
+            await _eventService.LogEventAsync(request);
+
+            return Ok(
+                ApiResponseDto<string>.CreateSuccess(
+                    "Beacon event logged successfully.",
+                    "Beacon event recorded."));
+        }
+
+        /// <summary>
+        /// Retrieves filtered activity events.
+        /// </summary>
+        [HttpGet("search")]
+        public async Task<IActionResult> SearchEvents(
+            [FromQuery] string? sessionId,
+            [FromQuery] string? eventType,
+            [FromQuery] DateTime? startDate,
+            [FromQuery] DateTime? endDate,
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 20)
+        {
+            var (events, totalCount) =
+                await _eventService.GetFilteredEventsAsync(
+                    sessionId,
+                    eventType,
+                    startDate,
+                    endDate,
+                    page,
+                    pageSize);
+
+            var response = new
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Events = events
+            };
+
+            return Ok(
+                ApiResponseDto<object>.CreateSuccess(
+                    response,
+                    "Filtered events retrieved successfully."));
+        }
     }
 }

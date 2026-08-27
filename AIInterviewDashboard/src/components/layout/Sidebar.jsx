@@ -1,6 +1,13 @@
 import { Nav } from "react-bootstrap";
 import { NavLink } from "react-router-dom";
 
+/**
+ * Vertical navigation sidebar used on dashboard and session pages.
+ *
+ * Output:
+ * - Renders navigation links for Dashboard, Events, Sessions, and Mock Interview.
+ * - Active links are automatically highlighted via NavLink.
+ */
 function Sidebar() {
     return (
         <div className="sidebar bg-dark text-white p-3 h-100">

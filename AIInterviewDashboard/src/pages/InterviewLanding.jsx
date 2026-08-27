@@ -16,6 +16,16 @@ import {
   createActivityEvent,
 } from "../services/interviewService";
 
+/**
+ * Displays the interview landing page and initializes a new interview session.
+ *
+ * Input:
+ * - Accepts candidate and interview information entered on the landing page.
+ *
+ * Output:
+ * - Creates an interview session and navigates the candidate
+ *   to the permission-checking stage.
+ */
 function InterviewLanding() {
   const navigate = useNavigate();
 
@@ -26,6 +36,17 @@ function InterviewLanding() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
 
+  /**
+   * Validates form inputs, creates an interview session, logs the email submission event,
+   * and navigates to the permission page.
+   *
+   * Input:
+   * - event: Form submission event.
+   *
+   * Output:
+   * - Creates a session in the backend and navigates to the permission stage,
+   *   or sets an error message when validation or the API call fails.
+   */
   const handleContinue = async (event) => {
     event.preventDefault();
 

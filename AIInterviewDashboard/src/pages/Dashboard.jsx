@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { Row, Col, Alert } from "react-bootstrap";
+import { Row, Col, Alert, Container, Offcanvas } from "react-bootstrap";
+import { Menu } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
@@ -14,7 +15,21 @@ import {
     getRecentEvents,
 } from "../services/dashboardService";
 
+/**
+ * Displays the main interview monitoring dashboard.
+ *
+ * Input:
+ * - No direct props.
+ *
+ * Output:
+ * - Renders dashboard statistics, recent activity events,
+ *   activity chart, filters, and session summary.
+ */
+
 function Dashboard() {
+    // Responsive sidebar state
+    const [showSidebar, setShowSidebar] = useState(false);
+
     // Filter states
     const [searchTerm, setSearchTerm] = useState("");
     const [selectedEvent, setSelectedEvent] = useState("ALL");
@@ -31,6 +46,17 @@ function Dashboard() {
     const [error, setError] = useState("");
 
     useEffect(() => {
+
+    /**
+    * Loads dashboard statistics and recent activity events from the backend.
+    *
+    * Input:
+    * - No input parameters.
+    *
+    * Output:
+    * - Updates dashboard statistics, activity events, loading state,
+    *   and error state.
+    */
         const loadDashboardData = async () => {
             try {
                 setLoading(true);
@@ -73,119 +99,132 @@ function Dashboard() {
         <>
             <Navbar />
 
-            <div className="container-fluid dashboard-container">
-                <div className="row g-0 dashboard-row">
+            {/* Mobile Sidebar Offcanvas */}
+            <Offcanvas
+                show={showSidebar}
+                onHide={() => setShowSidebar(false)}
+                className="bg-dark text-white"
+            >
+                <Offcanvas.Header closeButton closeVariant="white">
+                    <Offcanvas.Title className="fw-bold">Menu</Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="p-0">
+                    <Sidebar />
+                </Offcanvas.Body>
+            </Offcanvas>
 
-                    <div className="col-md-3 col-lg-2 p-0 dashboard-sidebar-column">
+            <Container fluid className="dashboard-container">
+                <Row className="g-0">
+                    {/* Sidebar */}
+                    <Col md={3} lg={2} className="d-none d-md-block bg-dark border-end">
                         <Sidebar />
-                    </div>
+                    </Col>
 
-                    <main className="col-md-9 col-lg-10 bg-light dashboard-main">
+                    {/* Main Content Area */}
+                    <Col xs={12} md={9} lg={10} className="bg-light dashboard-main">
                         <div className="dashboard-content">
-
                             {/* Header */}
-                            <h2 className="fw-bold mb-1">
-                                Dashboard
-                            </h2>
+                            <div className="mb-4 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h2 className="fw-bold mb-1 fs-3 fs-md-2">Dashboard</h2>
+                                    <p className="text-muted mb-0 small">
+                                        AI Interview Activity Tracker
+                                    </p>
+                                </div>
+                                <button
+                                    className="btn btn-outline-dark d-md-none d-flex align-items-center gap-2"
+                                    onClick={() => setShowSidebar(true)}
+                                    aria-label="Open Navigation"
+                                >
+                                    <Menu size={18} />
+                                    <span>Menu</span>
+                                </button>
+                            </div>
 
-                            <p className="text-muted mb-4">
-                                AI Interview Activity Tracker
-                            </p>
-
-                            {/* API Error */}
+                            {/* API Error Alert */}
                             {error && (
-                                <Alert variant="danger">
+                                <Alert variant="danger" className="mb-4">
                                     {error}
                                 </Alert>
                             )}
 
-                            {/* Statistics */}
-                            <Row className="g-3 mb-4">
-                                <Col xs={12} sm={6} xl={3}>
+                            {/* Statistics Cards Grid */}
+                            <Row className="g-2 g-sm-3 mb-4">
+                                <Col xs={12} sm={6} lg={3}>
                                     <StatsCard
                                         title="Active Sessions"
-                                        value={
-                                            loading
-                                                ? "..."
-                                                : stats.activeSessions
-                                        }
+                                        value={loading ? "..." : stats.activeSessions}
                                     />
                                 </Col>
 
-                                <Col xs={12} sm={6} xl={3}>
+                                <Col xs={12} sm={6} lg={3}>
                                     <StatsCard
                                         title="Total Sessions"
-                                        value={
-                                            loading
-                                                ? "..."
-                                                : stats.totalSessions
-                                        }
+                                        value={loading ? "..." : stats.totalSessions}
                                     />
                                 </Col>
 
-                                <Col xs={12} sm={6} xl={3}>
+                                <Col xs={12} sm={6} lg={3}>
                                     <StatsCard
                                         title="Total Events"
-                                        value={
-                                            loading
-                                                ? "..."
-                                                : stats.totalEvents
-                                        }
+                                        value={loading ? "..." : stats.totalEvents}
                                     />
                                 </Col>
 
-                                <Col xs={12} sm={6} xl={3}>
+                                <Col xs={12} sm={6} lg={3}>
                                     <StatsCard
                                         title="Recent Events"
-                                        value={
-                                            loading
-                                                ? "..."
-                                                : events.length
-                                        }
+                                        value={loading ? "..." : events.length}
                                     />
                                 </Col>
                             </Row>
 
-                            {/* Analytics */}
+                            {/* Analytics Section (Chart & Summary) */}
                             <Row className="g-3 mb-4">
                                 <Col xs={12} lg={8}>
-                                    <ActivityChart events={events} />
+                                    <div className="bg-white p-3 rounded shadow-sm h-100">
+                                        <ActivityChart events={events} />
+                                    </div>
                                 </Col>
 
                                 <Col xs={12} lg={4}>
-                                    <SessionSummary
-                                        totalSessions={stats.totalSessions}
-                                        activeSessions={stats.activeSessions}
-                                        recentEventsCount={events.length}
-                                    />
+                                    <div className="bg-white p-3 rounded shadow-sm h-100">
+                                        <SessionSummary
+                                            totalSessions={stats.totalSessions}
+                                            activeSessions={stats.activeSessions}
+                                            recentEventsCount={events.length}
+                                        />
+                                    </div>
                                 </Col>
                             </Row>
 
                             {/* Filters */}
-                            <FilterBar
-                                searchTerm={searchTerm}
-                                setSearchTerm={setSearchTerm}
-                                selectedEvent={selectedEvent}
-                                setSelectedEvent={setSelectedEvent}
-                            />
+                            <div className="mb-3">
+                                <FilterBar
+                                    searchTerm={searchTerm}
+                                    setSearchTerm={setSearchTerm}
+                                    selectedEvent={selectedEvent}
+                                    setSelectedEvent={setSelectedEvent}
+                                />
+                            </div>
 
-                            {/* Recent Events */}
+                            {/* Events Table */}
                             <Row>
                                 <Col xs={12}>
-                                    <EventTable
-                                        events={events}
-                                        searchTerm={searchTerm}
-                                        selectedEvent={selectedEvent}
-                                        loading={loading}
-                                    />
+                                    <div className="bg-white rounded shadow-sm p-2 p-md-3">
+                                        <EventTable
+                                            events={events}
+                                            searchTerm={searchTerm}
+                                            selectedEvent={selectedEvent}
+                                            loading={loading}
+                                        />
+                                    </div>
                                 </Col>
                             </Row>
-
                         </div>
-                    </main>
-
-                </div>
-            </div>
+                    </Col>
+                </Row>
+            </Container>
         </>
     );
 }

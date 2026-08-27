@@ -10,5 +10,6 @@
         public string InterviewSessionCollection { get; set; } = string.Empty;
         public string ActivityEventsCollection { get; set; } = string.Empty;
         public string InterviewSummaryCollection { get; set; } = string.Empty;
+        public string SessionRecordingCollection { get; set; } = string.Empty;
     }
 }

@@ -1,3 +1,14 @@
+/**
+ * Displays the candidate webcam stream and exposes recording controls
+ * to the parent interview component.
+ *
+ * Input:
+ * - onPermissionEvent: Optional callback related to permission events.
+ *
+ * Output:
+ * - Renders the webcam preview and exposes recording methods through ref.
+ */
+
 import {
   forwardRef,
   useEffect,

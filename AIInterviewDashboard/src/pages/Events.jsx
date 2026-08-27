@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
-import { Alert, Spinner } from "react-bootstrap";
+import { Alert, Col, Container, Offcanvas, Row, Spinner } from "react-bootstrap";
+import { Menu } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
@@ -8,7 +9,19 @@ import FilterBar from "../components/dashboard/FilterBar";
 
 import { searchEvents } from "../services/interviewService";
 
+/**
+ * Displays searchable and filterable interview activity events.
+ *
+ * Input:
+ * - No direct props.
+ *
+ * Output:
+ * - Renders activity events with search, event-type filtering,
+ *   loading state, error handling, and pagination.
+ */
 function Events() {
+    // Responsive sidebar state for mobile offcanvas
+    const [showSidebar, setShowSidebar] = useState(false);
     const [events, setEvents] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -23,6 +36,15 @@ function Events() {
         loadEvents();
     }, [page, searchTerm, selectedEvent]);
 
+    /**
+     * Loads paginated and filtered activity events from the backend.
+     *
+     * Input:
+     * - Uses the current page, pageSize, searchTerm, and selectedEvent state.
+     *
+     * Output:
+     * - Updates events, totalPages, loading, and error state.
+     */
     async function loadEvents() {
         try {
             setLoading(true);
@@ -59,21 +81,51 @@ function Events() {
         <>
             <Navbar />
 
-            <div className="container-fluid dashboard-container">
-                <div className="row g-0">
-                    <div className="col-md-3 col-lg-2 p-0">
+            {/* Mobile Sidebar Offcanvas */}
+            <Offcanvas
+                show={showSidebar}
+                onHide={() => setShowSidebar(false)}
+                className="bg-dark text-white"
+            >
+                <Offcanvas.Header closeButton closeVariant="white">
+                    <Offcanvas.Title className="fw-bold">Menu</Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="p-0">
+                    <Sidebar />
+                </Offcanvas.Body>
+            </Offcanvas>
+
+            <Container fluid className="dashboard-container">
+                <Row className="g-0">
+                    {/* Desktop Sidebar */}
+                    <Col md={3} lg={2} className="d-none d-md-block bg-dark border-end">
                         <Sidebar />
-                    </div>
+                    </Col>
 
-                    <main className="col-md-9 col-lg-10 bg-light dashboard-main">
+                    {/* Main Content Area */}
+                    <Col xs={12} md={9} lg={10} className="bg-light dashboard-main" as="main">
                         <div className="dashboard-content">
-                            <h2 className="fw-bold">
-                                Activity Events
-                            </h2>
 
-                            <p className="text-muted mb-4">
-                                Search, Filter and Browse Interview Events
-                            </p>
+                            {/* Page Header */}
+                            <div className="mb-4 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h2 className="fw-bold mb-1 fs-3 fs-md-2">
+                                        Activity Events
+                                    </h2>
+                                    <p className="text-muted mb-0 small">
+                                        Search, Filter and Browse Interview Events
+                                    </p>
+                                </div>
+                                {/* Mobile menu toggle */}
+                                <button
+                                    className="btn btn-outline-dark d-md-none d-flex align-items-center gap-2"
+                                    onClick={() => setShowSidebar(true)}
+                                    aria-label="Open Navigation"
+                                >
+                                    <Menu size={18} />
+                                    <span>Menu</span>
+                                </button>
+                            </div>
 
                             {error && (
                                 <Alert variant="danger">
@@ -129,9 +181,9 @@ function Events() {
                                 </>
                             )}
                         </div>
-                    </main>
-                </div>
-            </div>
+                    </Col>
+                </Row>
+            </Container>
         </>
     );
 }

@@ -21,5 +21,25 @@ namespace AIInterviewActivityTracker.Interfaces
         /// Updates the status of an existing interview session.
         /// </summary>
         Task<bool> UpdateSessionStatusAsync(string sessionId, string status);
+
+        /// <summary>
+        /// Returns the total number of interview sessions.
+        /// </summary>
+        Task<long> GetTotalSessionCountAsync();
+
+        /// <summary>
+        /// Returns the number of sessions matching the supplied status.
+        /// </summary>
+        Task<long> GetSessionCountByStatusAsync(string status);
+
+        /// <summary>
+        /// Retrieves all completed interview sessions.
+        /// </summary>
+        Task<List<InterviewSession>> GetCompletedSessionsAsync();
+
+        /// <summary>
+        /// Retrives all sessions
+        /// </summary>
+        Task<IEnumerable<InterviewSession>> GetInterviewSessionsAsync();
     }
 }

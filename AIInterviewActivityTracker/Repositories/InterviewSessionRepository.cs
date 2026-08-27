@@ -7,7 +7,6 @@ namespace AIInterviewActivityTracker.Repositories
 {
     /// <summary>
     /// Handles MongoDB database queries for Interview Sessions.
-    /// Injects Singleton MongoDbContext safely via Dependency Injection.
     /// </summary>
     public class InterviewSessionRepository : IInterviewSessionRepository
     {
@@ -30,7 +29,7 @@ namespace AIInterviewActivityTracker.Repositories
 
             if (string.IsNullOrWhiteSpace(session.SessionId))
             {
-                throw new ArgumentException("SessionId cannot be null or whitespace.", nameof(session.SessionId));
+                throw new ArgumentException("SessionId cannot be null or whitespace.", nameof(session));
             }
 
             await _sessionsCollection.InsertOneAsync(session);
@@ -38,7 +37,13 @@ namespace AIInterviewActivityTracker.Repositories
         }
 
         /// <summary>
-        /// Fetches session document matching the SessionId.
+        /// Retrieves an interview session document using its SessionId.
+        ///
+        /// Input:
+        /// sessionId - Unique identifier of the interview session.
+        ///
+        /// Output:
+        /// Returns the matching interview session, or null when not found.
         /// </summary>
         public async Task<InterviewSession?> GetSessionByIdAsync(string sessionId)
         {
@@ -47,12 +52,22 @@ namespace AIInterviewActivityTracker.Repositories
                 return null;
             }
 
-            var filter = Builders<InterviewSession>.Filter.Eq(s => s.SessionId, sessionId.Trim());
+            var normalizedSessionId = sessionId.Trim();
+
+            var filter = Builders<InterviewSession>.Filter.Eq(s => s.SessionId, normalizedSessionId);
             return await _sessionsCollection.Find(filter).FirstOrDefaultAsync();
         }
 
         /// <summary>
-        /// Updates session status and refreshed timestamp.
+        /// Updates the status and timestamps of an existing interview session.
+        ///
+        /// Input:
+        /// sessionId - Unique identifier of the interview session.
+        /// status - New status to assign to the session.
+        ///
+        /// Output:
+        /// Returns true when the session is successfully matched and updated;
+        /// otherwise returns false.
         /// </summary>
         public async Task<bool> UpdateSessionStatusAsync(string sessionId, string status)
         {
@@ -61,13 +76,88 @@ namespace AIInterviewActivityTracker.Repositories
                 return false;
             }
 
-            var filter = Builders<InterviewSession>.Filter.Eq(s => s.SessionId, sessionId.Trim());
-            var update = Builders<InterviewSession>.Update
-                .Set(s => s.Status, status.Trim())
-                .Set(s => s.UpdatedAt, DateTime.UtcNow);
+            var normalizedSessionId = sessionId.Trim();
+
+            var normalizedStatus = status.Trim();
+
+            var filter = Builders<InterviewSession>.Filter.Eq(s => s.SessionId, normalizedSessionId);
+            var update = Builders<InterviewSession>.Update.Set(s => s.Status, normalizedStatus).Set(s => s.UpdatedAt, DateTime.UtcNow);
+
+            if(normalizedStatus.Equals("COMPLETED", StringComparison.OrdinalIgnoreCase) ||
+                normalizedStatus.Equals("ABORTED", StringComparison.OrdinalIgnoreCase))
+            {
+                update = update.Set(s => s.EndTime, DateTime.UtcNow);
+            }
 
             var result = await _sessionsCollection.UpdateOneAsync(filter, update);
-            return result.IsAcknowledged && result.ModifiedCount > 0;
+            return result.IsAcknowledged && result.MatchedCount > 0;
+        }
+
+        /// <summary>
+        /// Retrieves the total number of interview sessions stored in MongoDB.
+        ///
+        /// Input:
+        /// No input parameters.
+        ///
+        /// Output:
+        /// Returns the total number of interview sessions.
+        /// </summary>
+        public async Task<long> GetTotalSessionCountAsync()
+        {
+            return await _sessionsCollection.CountDocumentsAsync(Builders<InterviewSession>.Filter.Empty);
+        }
+
+        /// <summary>
+        /// Returns the number of interview sessions matching a status.
+        /// </summary>
+        public async Task<long> GetSessionCountByStatusAsync(string status)
+        {
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                throw new ArgumentException(
+                    "Status cannot be null or whitespace.",
+                    nameof(status));
+            }
+
+            var normalizedStatus = status.Trim();
+
+            var filter = Builders<InterviewSession>.Filter.Eq(
+                s => s.Status,
+                normalizedStatus);
+
+            return await _sessionsCollection.CountDocumentsAsync(filter);
+        }
+
+        /// <summary>
+        /// Retrieves all completed interview sessions.
+        /// </summary>
+        public async Task<List<InterviewSession>> GetCompletedSessionsAsync()
+        {
+            var filter = Builders<InterviewSession>.Filter.Eq(
+                s => s.Status,
+                "COMPLETED");
+
+            return await _sessionsCollection
+                .Find(filter)
+                .ToListAsync();
+        }
+
+        /// <summary>
+        /// Retrieves all interview sessions ordered by StartTime in descending order.
+        ///
+        /// Input:
+        /// No input parameters.
+        ///
+        /// Output:
+        /// Returns all persisted interview session documents.
+        /// </summary>
+
+        public async Task<IEnumerable<InterviewSession>> GetInterviewSessionsAsync()
+        {
+            return await _sessionsCollection
+                .Find(_ => true)
+                .SortByDescending(x => x.StartTime)
+                .ToListAsync();
         }
     }
 }

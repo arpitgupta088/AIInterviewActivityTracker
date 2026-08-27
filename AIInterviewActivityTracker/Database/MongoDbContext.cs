@@ -19,7 +19,7 @@ namespace AIInterviewActivityTracker.Database
 
         public MongoDbContext(IMongoClient mongoClient, IOptions<MongoDbSettings> settings)
         {
-            // Rule 1 & 2: Defensive Null & Validation Checks
+            // Defensive Null & Validation Checks
             ArgumentNullException.ThrowIfNull(mongoClient);
             ArgumentNullException.ThrowIfNull(settings);
 
@@ -38,7 +38,7 @@ namespace AIInterviewActivityTracker.Database
         /// </summary>
         public IMongoCollection<T> GetCollection<T>(string collectionName)
         {
-            // Rule 1 & 2: Safe Whitespace Check
+            // Safe Whitespace Check
             if (string.IsNullOrWhiteSpace(collectionName))
             {
                 throw new ArgumentException("Collection name cannot be null or empty.", nameof(collectionName));

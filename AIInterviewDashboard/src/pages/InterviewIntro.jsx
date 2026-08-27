@@ -11,6 +11,18 @@ import {
 
 import { createActivityEvent } from "../services/interviewService";
 
+/**
+ * Displays the interview introduction video and controls the transition
+ * into the interview.
+ *
+ * Input:
+ * - Reads session, candidate, interview, and email information
+ *   from router state.
+ *
+ * Output:
+ * - Renders the introduction video, skip/start controls,
+ *   and logs introduction activity events.
+ */
 function InterviewIntro() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -33,6 +45,16 @@ function InterviewIntro() {
     }
 
     introStartedLoggedRef.current = true;
+    
+    /**
+ * Logs the start of the interview introduction.
+ *
+ * Input:
+ * - Uses the session and candidate identifiers from router state.
+ *
+ * Output:
+ * - Creates an INTRO_STARTED activity event in the backend.
+ */
 
     const logIntroStarted = async () => {
       try {
@@ -70,6 +92,16 @@ function InterviewIntro() {
     email,
   } = state;
 
+  /**
+ * Handles completion of the introduction video.
+ *
+ * Input:
+ * - No explicit parameters.
+ *
+ * Output:
+ * - Marks the introduction as completed and logs INTRO_COMPLETED.
+ */
+
   const handleVideoEnded = async () => {
 
     if (introFinishedRef.current) {
@@ -94,6 +126,17 @@ function InterviewIntro() {
       console.error(error);
     }
   };
+
+  /**
+ * Skips the interview introduction video.
+ *
+ * Input:
+ * - No explicit parameters.
+ *
+ * Output:
+ * - Stops the introduction video, marks it as completed,
+ *   and logs INTRO_SKIPPED.
+ */
 
   const handleSkip = async () => {
     if (introFinishedRef.current) {
@@ -122,6 +165,16 @@ function InterviewIntro() {
       console.error(error);
     }
   };
+
+  /**
+ * Starts the interview after the introduction is completed or skipped.
+ *
+ * Input:
+ * - Uses the current session and candidate identifiers.
+ *
+ * Output:
+ * - Logs the interview start event and navigates to the interview flow.
+ */
 
   const handleStartInterview = async () => {
     try {

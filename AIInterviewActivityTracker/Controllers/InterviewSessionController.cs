@@ -1,6 +1,7 @@
 ﻿using AIInterviewActivityTracker.DTOs;
 using AIInterviewActivityTracker.DTOs.InterviewSession;
 using AIInterviewActivityTracker.Interfaces;
+using AIInterviewActivityTracker.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AIInterviewActivityTracker.Controllers
@@ -38,6 +39,15 @@ namespace AIInterviewActivityTracker.Controllers
                 ApiResponseDto<InterviewSessionResponse>.CreateSuccess(
                     result,
                     "Session created successfully."));
+        }
+
+
+        [HttpGet]
+        public async Task<IActionResult> GetAllSessions()
+        {
+            var sessions = await _sessionService.GetAllSessionsAsync();
+
+            return Ok(sessions);
         }
 
         /// <summary>

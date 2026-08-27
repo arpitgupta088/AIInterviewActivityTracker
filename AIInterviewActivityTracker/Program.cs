@@ -1,3 +1,4 @@
+using AIInterviewActivityTracker.BackgroundServices;
 using AIInterviewActivityTracker.Configurations;
 using AIInterviewActivityTracker.Database;
 using AIInterviewActivityTracker.Interfaces;
@@ -18,9 +19,19 @@ builder.Services.AddValidatorsFromAssemblyContaining<CreateInterviewSessionReque
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// Configuration
-builder.Services.Configure<MongoDbSettings>(
-    builder.Configuration.GetSection("MongoDbSettings"));
+// Configuration with Eager Validation (Fail-Fast)
+builder.Services
+    .AddOptions<MongoDbSettings>()
+    .Bind(builder.Configuration.GetSection("MongoDbSettings"))
+    .Validate(settings =>
+        !string.IsNullOrWhiteSpace(settings.ConnectionString) &&
+        !string.IsNullOrWhiteSpace(settings.DatabaseName) &&
+        !string.IsNullOrWhiteSpace(settings.InterviewSessionCollection) &&
+        !string.IsNullOrWhiteSpace(settings.ActivityEventsCollection) &&
+        !string.IsNullOrWhiteSpace(settings.InterviewSummaryCollection) &&
+        !string.IsNullOrWhiteSpace(settings.SessionRecordingCollection),
+        "MongoDbSettings configuration is invalid.")
+    .ValidateOnStart();
 
 // MongoDB
 builder.Services.AddSingleton<IMongoClient>(sp =>
@@ -41,10 +52,22 @@ builder.Services.AddSingleton<MongoDbContext>();
 // Repository Registration
 builder.Services.AddScoped<IInterviewSessionRepository, InterviewSessionRepository>();
 builder.Services.AddScoped<IActivityEventRepository, ActivityEventRepository>();
+builder.Services.AddScoped<IInterviewSummaryRepository, InterviewSummaryRepository>();
+builder.Services.AddScoped<IRecordingRepository, RecordingRepository>();
+builder.Services.AddScoped<ISessionRecordingRepository, SessionRecordingRepository>();
 
 // Service Registration
 builder.Services.AddScoped<IInterviewSessionService, InterviewSessionService>();
 builder.Services.AddScoped<IActivityEventService, ActivityEventService>();
+builder.Services.AddScoped<IInterviewSummaryService, InterviewSummaryService>();
+builder.Services.AddScoped<IRecordingService, RecordingService>();
+builder.Services.AddScoped<ISessionRecordingService, SessionRecordingService>();
+
+//Generator Registration
+builder.Services.AddScoped<IInterviewSummaryGenerator, InterviewSummaryGenerator>();
+
+// Background Service Registration
+builder.Services.AddHostedService<InterviewSummaryBackgroundService>();
 
 // CORS
 builder.Services.AddCors(options =>
@@ -58,6 +81,8 @@ builder.Services.AddCors(options =>
 });
 
 var app = builder.Build();
+
+await MongoDbIndexes.CreateIndexesAsync(app.Services);
 
 // HTTP Request Pipeline
 if (app.Environment.IsDevelopment())

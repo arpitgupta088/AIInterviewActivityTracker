@@ -1,13 +1,25 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { Alert, Card, Spinner, Table } from "react-bootstrap";
+import { Alert, Card, Col, Container, Offcanvas, Row, Spinner, Table } from "react-bootstrap";
+import { Menu } from "lucide-react";
 
 import Navbar from "../components/layout/Navbar";
 import Sidebar from "../components/layout/Sidebar";
 
 import { getAllSessions } from "../services/interviewService";
 
+/**
+ * Displays all interview sessions retrieved from the backend.
+ *
+ * Input:
+ * - No direct props.
+ *
+ * Output:
+ * - Renders a table of all sessions with links to their detail pages.
+ */
 function Sessions() {
+    // Responsive sidebar state for mobile offcanvas
+    const [showSidebar, setShowSidebar] = useState(false);
     const [sessions, setSessions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
@@ -16,6 +28,15 @@ function Sessions() {
         loadSessions();
     }, []);
 
+    /**
+     * Loads all interview sessions from the backend API.
+     *
+     * Input:
+     * - No input parameters.
+     *
+     * Output:
+     * - Updates sessions state, loading state, and error state.
+     */
     const loadSessions = async () => {
         try {
             setLoading(true);
@@ -37,6 +58,15 @@ function Sessions() {
         }
     };
 
+    /**
+     * Formats an ISO date string into the user's local date and time.
+     *
+     * Input:
+     * - date: ISO date string or null.
+     *
+     * Output:
+     * - Returns a formatted date string, or "N/A" when the date is absent.
+     */
     const formatDate = (date) => {
         if (!date) {
             return "N/A";
@@ -49,27 +79,55 @@ function Sessions() {
         <>
             <Navbar />
 
-            <div className="container-fluid dashboard-container">
-                <div className="row g-0 dashboard-row">
+            {/* Mobile Sidebar Offcanvas */}
+            <Offcanvas
+                show={showSidebar}
+                onHide={() => setShowSidebar(false)}
+                className="bg-dark text-white"
+            >
+                <Offcanvas.Header closeButton closeVariant="white">
+                    <Offcanvas.Title className="fw-bold">Menu</Offcanvas.Title>
+                </Offcanvas.Header>
+                <Offcanvas.Body className="p-0">
+                    <Sidebar />
+                </Offcanvas.Body>
+            </Offcanvas>
 
-                    <div className="col-md-3 col-lg-2 p-0 dashboard-sidebar-column">
+            <Container fluid className="dashboard-container">
+                <Row className="g-0">
+                    {/* Desktop Sidebar */}
+                    <Col md={3} lg={2} className="d-none d-md-block bg-dark border-end">
                         <Sidebar />
-                    </div>
+                    </Col>
 
-                    <main className="col-md-9 col-lg-10 bg-light dashboard-main">
-
+                    {/* Main Content Area */}
+                    <Col xs={12} md={9} lg={10} className="bg-light dashboard-main" as="main">
                         <div className="dashboard-content">
 
-                            <h2 className="fw-bold">
-                                Interview Sessions
-                            </h2>
+                            {/* Page Header */}
+                            <div className="mb-4 d-flex align-items-center justify-content-between">
+                                <div>
+                                    <h2 className="fw-bold mb-1 fs-3 fs-md-2">
+                                        Interview Sessions
+                                    </h2>
+                                    <p className="text-muted mb-0 small">
+                                        Browse all interview sessions.
+                                    </p>
+                                </div>
+                                {/* Mobile menu toggle */}
+                                <button
+                                    className="btn btn-outline-dark d-md-none d-flex align-items-center gap-2"
+                                    onClick={() => setShowSidebar(true)}
+                                    aria-label="Open Navigation"
+                                >
+                                    <Menu size={18} />
+                                    <span>Menu</span>
+                                </button>
+                            </div>
 
-                            <p className="text-muted mb-4">
-                                Browse all interview sessions.
-                            </p>
-
+                            {/* API Error Alert */}
                             {error && (
-                                <Alert variant="danger">
+                                <Alert variant="danger" className="mb-4">
                                     {error}
                                 </Alert>
                             )}
@@ -110,7 +168,7 @@ function Sessions() {
 
                                                         sessions.map((session) => (
 
-                                                            <tr key={session.sessionId}>
+                                                            <tr key={`${session.sessionId}-${session.candidateId}-${session.startTime}`}>
 
                                                                 <td>
 
@@ -170,11 +228,9 @@ function Sessions() {
                             </Card>
 
                         </div>
-
-                    </main>
-
-                </div>
-            </div>
+                    </Col>
+                </Row>
+            </Container>
         </>
     );
 }

@@ -14,18 +14,15 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="BackgroundServices\" />
-    <Folder Include="Extensions\" />
-    <Folder Include="Helpers\" />
-    <Folder Include="Exceptions\" />
-  </ItemGroup>
-
-  <ItemGroup>
     <None Include="wwwroot\Client\apiClient.js" />
     <None Include="wwwroot\Client\beaconTracker.js" />
     <None Include="wwwroot\Client\eventQueue.js" />
     <None Include="wwwroot\Client\index.html" />
     <None Include="wwwroot\Client\tracker.js" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Folder Include="wwwroot\uploads\session-recordings\" />
   </ItemGroup>
 
 </Project>

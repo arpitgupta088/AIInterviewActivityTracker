@@ -10,5 +10,3 @@
 # Environment / secrets
 .env
 .env.*
-
-AIInterviewActivityTracker/wwwroot/client/

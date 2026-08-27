@@ -13,6 +13,17 @@ import recordingService from "../services/recordingService";
 
 import { createActivityEvent } from "../services/interviewService";
 
+/**
+ * Checks and requests the browser permissions required for the interview.
+ *
+ * Input:
+ * - Reads the current interview session information from router state.
+ *
+ * Output:
+ * - Displays camera, microphone, and screen-sharing permission status
+ *   and allows the candidate to continue when requirements are satisfied.
+ */
+
 function InterviewPermission() {
   const navigate = useNavigate();
   const { state } = useLocation();
@@ -38,6 +49,16 @@ function InterviewPermission() {
     email,
   } = state;
 
+  /**
+   * Requests camera, microphone, and screen sharing permissions from the browser.
+   *
+   * Input:
+   * - No direct parameters. Uses the current session state.
+   *
+   * Output:
+   * - Initialises media streams, starts session recording, logs permission events,
+   *   and updates permissionGranted state.
+   */
   const handlePermission = async () => {
     setError("");
 
@@ -47,15 +68,34 @@ function InterviewPermission() {
       return;
     }
 
+    let cameraStream = null;
+    let displayStream = null;
+
+    let cameraGranted = false;
+    let microphoneGranted = false;
+    let screenGranted = false;
+
     try {
       setLoading(true);
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      cameraStream = await navigator.mediaDevices.getUserMedia({
         video: true,
         audio: true,
       });
 
-      recordingService.setStream(stream);
+      recordingService.setStream(cameraStream);
+
+      cameraGranted=true;
+      microphoneGranted = true;
+
+      displayStream = await navigator.mediaDevices.getDisplayMedia({
+        video: true,
+        audio: true,
+      });
+
+      screenGranted =true;
+
+      recordingService.startSessionRecording(displayStream, cameraStream);
 
       await createActivityEvent({
         sessionId,
@@ -65,12 +105,20 @@ function InterviewPermission() {
         metadataJson: JSON.stringify({
           camera: true,
           microphone: true,
+          screen: true,
           timestamp: new Date().toISOString(),
         }),
       });
 
       setPermissionGranted(true);
     } catch (err) {
+      recordingService.cleanup();
+
+      if (displayStream) {
+        displayStream.getTracks().forEach((track) => {
+          track.stop();
+      });
+    }
       console.error(err);
 
       try {
@@ -80,8 +128,9 @@ function InterviewPermission() {
           eventType: "PERMISSION_DENIED",
           module: "PERMISSION",
           metadataJson: JSON.stringify({
-            camera: false,
-            microphone: false,
+            camera: cameraGranted,
+            microphone: microphoneGranted,
+            screen: screenGranted,
             timestamp: new Date().toISOString(),
           }),
         });
@@ -90,13 +139,22 @@ function InterviewPermission() {
       }
 
       setError(
-        "Camera and microphone permission is required to continue the interview."
+        "Camera, microphone and screen sharing permission is required to continue the interview."
       );
     } finally {
       setLoading(false);
     }
   };
 
+  /**
+   * Navigates the candidate to the interview introduction page.
+   *
+   * Input:
+   * - No direct parameters. Uses the current session state.
+   *
+   * Output:
+   * - Navigates to the interview intro route, passing session state.
+   */
   const handleContinue = () => {
     navigate("/interview/intro", {
       state: {
@@ -116,11 +174,11 @@ function InterviewPermission() {
             <Card.Body className="p-4">
 
               <h2 className="text-center mb-4">
-                Camera & Microphone Permission
+                Camera, Microphone & Screen sharing Permission
               </h2>
 
               <p className="text-muted">
-                Before starting the interview, please allow camera and microphone
+                Before starting the interview, please allow camera, microphone and screen sharing
                 access.
               </p>
 
@@ -146,7 +204,7 @@ function InterviewPermission() {
                       Requesting Permission...
                     </>
                   ) : (
-                    "Allow Camera & Microphone"
+                    "Allow Camera, Microphone & Screen"
                   )}
                 </Button>
               ) : (

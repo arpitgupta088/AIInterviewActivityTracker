@@ -2,8 +2,17 @@ import React from "react";
 import { Badge, Card, ListGroup } from "react-bootstrap";
 
 /**
- * Displays dashboard session metrics received from the backend.
+ * Displays interview session statistics for the dashboard.
+ *
+ * Input:
+ * - totalSessions: Total number of interview sessions.
+ * - activeSessions: Number of currently active sessions.
+ * - recentEventsCount: Number of recently loaded activity events.
+ *
+ * Output:
+ * - Renders session count and activity summary statistics.
  */
+
 function SessionSummary({
   totalSessions = 0,
   activeSessions = 0,

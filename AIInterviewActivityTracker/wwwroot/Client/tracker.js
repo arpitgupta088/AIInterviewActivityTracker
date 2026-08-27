@@ -74,6 +74,33 @@ const ActivityTracker = (() => {
                 eventQueue.flushWithBeacon();
             }
 
+        })
+
+        window.addEventListener("online", () => {
+
+            console.log("[ActivityTracker] Network restored.");
+
+            if (eventQueue) {
+                eventQueue.flush();
+            }
+
+        });
+
+        window.addEventListener("error", (event) => {
+            trackEvent("APPLICATION_ERROR", "ERROR", {
+                message: event.message || "Unknown JavaScript error",
+                filename: event.filename || "",
+                lineNumber: event.lineno || null,
+                columnNumber: event.colno || null,
+                timestamp: new Date().toISOString()
+            });
+        });
+
+        window.addEventListener("unhandledrejection", (event) => {
+            trackEvent("UNHANDLED_PROMISE_REJECTION", "ERROR", {
+                reason: event.reason?.message || String(event.reason || "Unknown promise rejection"),
+                timestamp: new Date().toISOString()
+            });
         });
     }
 

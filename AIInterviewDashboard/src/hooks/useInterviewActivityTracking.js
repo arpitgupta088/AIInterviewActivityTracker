@@ -1,3 +1,18 @@
+/**
+ * Tracks browser and interview lifecycle activity for an interview session.
+ *
+ * Input:
+ * - sessionId: Unique identifier of the interview session.
+ * - candidateId: Unique identifier of the candidate.
+ * - logEvent: Callback used to persist activity events.
+ * - onTabSwitch: Optional callback invoked when the tab becomes hidden.
+ * - onTabReturn: Optional callback invoked when the tab becomes visible again.
+ *
+ * Output:
+ * - Registers and cleans up browser activity event listeners.
+ * - Logs visibility, fullscreen, network, and page lifecycle events.
+ */
+
 import { useEffect, useRef } from "react";
 
 function useInterviewActivityTracking({
@@ -38,11 +53,8 @@ function useInterviewActivityTracking({
                 return;
             }
 
-            if (!shouldLogEvent()) {
-                return;
-            }
-
             lastVisibilityState.current = currentState;
+
 
             if (currentState === "hidden") {
                 onTabSwitch?.();
@@ -53,19 +65,20 @@ function useInterviewActivityTracking({
                         visibilityState: "hidden",
                     }
                 );
- 
+
                 return;
 
             }
 
-            onTabReturn?.();
-            await logEvent(
-                "TAB_RETURNED",
-                {
-                    visibilityState: "visible",
-                }
-            );
-           
+            if (currentState === "visible") {
+                onTabReturn?.();
+                await logEvent(
+                    "TAB_RETURNED",
+                    {
+                        visibilityState: "visible",
+                    }
+                );
+            };
         };
 
         const handleFullscreenChange = async () => {
@@ -84,6 +97,35 @@ function useInterviewActivityTracking({
             }
         };
 
+        const handlePageHide = (event) => {
+            if (event.persisted) {
+                return;
+            }
+
+            const apiBaseUrl = import.meta.env.VITE_API_BASE_URL;
+
+            const payload = new URLSearchParams();
+
+            payload.append("SessionId", sessionId);
+            payload.append("CandidateId", candidateId);
+            payload.append("EventType", "PAGE_LEFT");
+            payload.append("Module", "INTERVIEW");
+            payload.append(
+                "MetadataJson",
+                JSON.stringify({
+                    reason: "PAGE_HIDE",
+                    timestamp: new Date().toISOString(),
+                })
+            );
+
+            const queued = navigator.sendBeacon(
+                `${apiBaseUrl}/activities/beacon`,
+                payload
+            );
+
+            console.log("PAGE_LEFT beacon queued:", queued);
+        };
+
         document.addEventListener(
             "visibilitychange",
             handleVisibilityChange
@@ -94,6 +136,26 @@ function useInterviewActivityTracking({
             handleFullscreenChange
         );
 
+        const handleOffline = async () => {
+            await logEvent("NETWORK_OFFLINE", {
+                online: false,
+                timestamp: new Date().toISOString(),
+            });
+        };
+
+        const handleOnline = async () => {
+            await logEvent("NETWORK_ONLINE", {
+                online: true,
+                timestamp: new Date().toISOString(),
+            });
+        };
+
+        window.addEventListener("offline", handleOffline);
+
+        window.addEventListener("online", handleOnline);
+
+        window.addEventListener("pagehide", handlePageHide);
+
         return () => {
             document.removeEventListener(
                 "visibilitychange",
@@ -103,6 +165,21 @@ function useInterviewActivityTracking({
             document.removeEventListener(
                 "fullscreenchange",
                 handleFullscreenChange
+            );
+
+            window.removeEventListener(
+                "offline",
+                handleOffline
+            );
+
+            window.removeEventListener(
+                "online",
+                handleOnline
+            );
+
+            window.removeEventListener(
+                "pagehide",
+                handlePageHide
             );
         };
     }, [

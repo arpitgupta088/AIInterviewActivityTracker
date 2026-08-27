@@ -1,3 +1,7 @@
+/**
+ * Root application component.
+ * Defines the client-side routing for all interview and dashboard pages.
+ */
 import { Routes, Route } from "react-router-dom";
 import Dashboard from "./pages/Dashboard";
 import SessionDetails from "./pages/SessionDetails";

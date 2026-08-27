@@ -1,21 +1,145 @@
+import React from "react";
+import { Row, Col, Form, Card } from "react-bootstrap";
+
 /**
- * FilterBar Component
- * Provides search and filtering capabilities for candidate activity events.
+ * Provides search and event-type filtering controls for dashboard activity data.
+ *
+ * Input:
+ * - searchTerm: Current candidate/session search text.
+ * - setSearchTerm: Callback used to update the search text.
+ * - selectedEvent: Currently selected activity event type.
+ * - setSelectedEvent: Callback used to update the selected event type.
+ *
+ * Output:
+ * - Renders search and event-type filter controls.
  */
+function FilterBar({
+  searchTerm,
+  setSearchTerm,
+  selectedEvent,
+  setSelectedEvent,
+}) {
+  const eventOptions = [
+    {
+      value: "PERMISSION_GRANTED",
+      label: "Permission Granted",
+    },
+    {
+      value: "PERMISSION_DENIED",
+      label: "Permission Denied",
+    },
+    {
+      value: "INTRO_STARTED",
+      label: "Introduction Started",
+    },
+    {
+      value: "INTRO_COMPLETED",
+      label: "Introduction Completed",
+    },
+    {
+      value: "INTRO_SKIPPED",
+      label: "Introduction Skipped",
+    },
+    {
+      value: "INTERVIEW_STARTED",
+      label: "Interview Started",
+    },
+    {
+      value: "VIDEO_COMPLETED",
+      label: "Question Video Completed",
+    },
+    {
+      value: "VIDEO_PLAYBACK_FAILED",
+      label: "Video Playback Failed",
+    },
+    {
+      value: "QUESTION_REPLAYED",
+      label: "Question Replayed",
+    },
+    {
+      value: "RECORDING_STARTED",
+      label: "Recording Started",
+    },
+    {
+      value: "RECORDING_STOPPED",
+      label: "Recording Stopped",
+    },
+    {
+      value: "RECORDING_UPLOADED",
+      label: "Recording Uploaded",
+    },
+    {
+      value: "QUESTION_COMPLETED",
+      label: "Question Completed",
+    },
+    {
+      value: "NEXT_QUESTION_CLICKED",
+      label: "Next Question",
+    },
+    {
+      value: "TAB_SWITCHED",
+      label: "Tab Switched",
+    },
+    {
+      value: "TAB_RETURNED",
+      label: "Tab Returned",
+    },
+    {
+      value: "WINDOW_BLURRED",
+      label: "Window Blurred",
+    },
+    {
+      value: "WINDOW_FOCUSED",
+      label: "Window Focused",
+    },
+    {
+      value: "FULLSCREEN_ENTERED",
+      label: "Fullscreen Entered",
+    },
+    {
+      value: "FULLSCREEN_EXITED",
+      label: "Fullscreen Exited",
+    },
+    {
+      value: "NETWORK_OFFLINE",
+      label: "Network Offline",
+    },
+    {
+      value: "NETWORK_ONLINE",
+      label: "Network Online",
+    },
+    {
+      value: "SCREEN_SHARE_ENDED",
+      label: "Screen Share Ended",
+    },
+    {
+      value: "SESSION_RECORDING_UPLOADED",
+      label: "Session Recording Uploaded",
+    },
+    {
+      value: "INTERVIEW_COMPLETED",
+      label: "Interview Completed",
+    },
+    {
+      value: "INTERVIEW_ABORTED",
+      label: "Interview Aborted",
+    },
+    {
+      value: "PAGE_LEFT",
+      label: "Page Left",
+    },
+  ];
 
-import React from 'react';
-import { Row, Col, Form, Card } from 'react-bootstrap';
-
-function FilterBar({ searchTerm, setSearchTerm, selectedEvent, setSelectedEvent }) {
   return (
     <Card className="shadow-sm border-0 mb-4">
       <Card.Body className="p-3">
-        {/* Search & Filter Controls */}
         <Row className="g-3">
-
-          {/* Candidate Search Input */}
           <Col xs={12} md={6} lg={4}>
             <Form.Group controlId="searchCandidate">
+              <Form.Label className="visually-hidden">
+                Search candidate or session
+              </Form.Label>
+
               <Form.Control
                 type="text"
                 placeholder="Search by Candidate ID or Session..."
@@ -25,26 +149,26 @@ function FilterBar({ searchTerm, setSearchTerm, selectedEvent, setSelectedEvent 
             </Form.Group>
           </Col>
 
-          {/* Event Type Filter Dropdown */}
           <Col xs={12} md={6} lg={4}>
-            <Form.Select
-              value={selectedEvent}
-              onChange={(e) => setSelectedEvent(e.target.value)}
-            >
-              <option value="ALL">All Event Types</option>
-              <option value="PAGE_LOAD">PAGE_LOAD</option>
-              <option value="PAGE_UNLOAD">PAGE_UNLOAD</option>
-              <option value="TAB_VISIBLE">TAB_VISIBLE</option>
-              <option value="TAB_HIDDEN">TAB_HIDDEN</option>
-              <option value="WINDOW_BLUR">WINDOW_BLUR</option>
-              <option value="WINDOW_FOCUS">WINDOW_FOCUS</option>
-              <option value="CAMERA_TOGGLED">CAMERA_TOGGLED</option>
-              <option value="MIC_TOGGLED">MIC_TOGGLED</option>
-              <option value="NETWORK_OFFLINE">NETWORK_OFFLINE</option>
-              <option value="NETWORK_ONLINE">NETWORK_ONLINE</option>
-            </Form.Select>
-          </Col>
+            <Form.Group controlId="eventTypeFilter">
+              <Form.Label className="visually-hidden">
+                Filter by event type
+              </Form.Label>
 
+              <Form.Select
+                value={selectedEvent}
+                onChange={(e) => setSelectedEvent(e.target.value)}
+              >
+                <option value="ALL">All Event Types</option>
+
+                {eventOptions.map((event) => (
+                  <option key={event.value} value={event.value}>
+                    {event.label}
+                  </option>
+                ))}
+              </Form.Select>
+            </Form.Group>
+          </Col>
         </Row>
       </Card.Body>
     </Card>

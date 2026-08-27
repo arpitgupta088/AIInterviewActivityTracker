@@ -77,16 +77,25 @@ export const generateInterviewSummary = async (sessionId) => {
   return response.data;
 };
 
+/**
+ * Creates a new candidate interview session.
+ */
 export const createInterviewSession = async (data) => {
   const response = await apiClient.post("/sessions", data);
   return response.data;
 };
 
+/**
+ * Logs a single activity event.
+ */
 export const createActivityEvent = async (data) => {
   const response = await apiClient.post("/activities", data);
   return response.data;
 };
 
+/**
+ * Updates the lifecycle status of an interview session.
+ */
 export const updateSessionStatus = async (data) => {
   const response = await apiClient.patch("/sessions/status", data);
   return response.data;

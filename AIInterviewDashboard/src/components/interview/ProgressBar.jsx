@@ -1,5 +1,16 @@
 import { Card, ProgressBar as BootstrapProgressBar } from "react-bootstrap";
 
+/**
+ * Displays the candidate's current interview progress.
+ *
+ * Input:
+ * - currentQuestion: Current question number.
+ * - totalQuestions: Total number of interview questions.
+ *
+ * Output:
+ * - Renders a progress bar showing interview completion percentage.
+ */
+
 function ProgressBar({
   currentQuestion,
   totalQuestions,
