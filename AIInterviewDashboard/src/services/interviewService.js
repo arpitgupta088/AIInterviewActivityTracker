@@ -1,4 +1,5 @@
 import apiClient from "./apiClient";
+import ActivityTracker from "./activityTracker";
 
 /**
  * Retrieves an interview session by its Session ID.
@@ -86,11 +87,43 @@ export const createInterviewSession = async (data) => {
 };
 
 /**
- * Logs a single activity event.
+ * Queues a single activity event for batched Beacon transmission.
+ *
+ * Input:
+ * - data: Activity event containing session ID, candidate ID,
+ *   event type, module, and metadata JSON.
+ *
+ * Output:
+ * - Returns a Promise that resolves after the event is queued.
  */
 export const createActivityEvent = async (data) => {
-  const response = await apiClient.post("/activities", data);
-  return response.data;
+  if (!data) {
+    throw new Error("Activity event data is required.");
+  }
+
+  if (!data.sessionId?.trim()) {
+    throw new Error("Session ID is required.");
+  }
+
+  if (!data.candidateId?.trim()) {
+    throw new Error("Candidate ID is required.");
+  }
+
+  if (!data.eventType?.trim()) {
+    throw new Error("Event type is required.");
+  }
+
+  ActivityTracker.trackEvent(
+    data.sessionId,
+    data.candidateId,
+    data.eventType,
+    data.module ?? "",
+    data.metadataJson ?? "{}"
+  );
+
+  return {
+    queued: true,
+  };
 };
 
 /**
