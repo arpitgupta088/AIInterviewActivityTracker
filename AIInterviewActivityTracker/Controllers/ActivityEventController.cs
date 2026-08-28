@@ -2,6 +2,7 @@
 using AIInterviewActivityTracker.DTOs.ActivityEvent;
 using AIInterviewActivityTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
+using System.Text.Json;
 
 namespace AIInterviewActivityTracker.Controllers
 {
@@ -129,6 +130,86 @@ namespace AIInterviewActivityTracker.Controllers
                 ApiResponseDto<object>.CreateSuccess(
                     response,
                     "Filtered events retrieved successfully."));
+        }
+
+        /// <summary>
+        /// Logs multiple activity events received through the browser Beacon API.
+        /// 
+        /// Input:
+        /// - events: JSON string containing an array of activity event requests.
+        /// 
+        /// Output:
+        /// - Returns a success response after the events are queued for persistence.
+        /// </summary>
+        /// <summary>
+        /// Logs multiple activity events received through the browser Beacon API.
+        ///
+        /// Input:
+        /// - events: JSON string containing an array of activity event requests.
+        ///
+        /// Output:
+        /// - Returns a success response after the activity events are persisted.
+        /// </summary>
+        [HttpPost("beacon-batch")]
+        public async Task<IActionResult> LogBeaconBatchEvents(
+            [FromForm] string events)
+        {
+            if (string.IsNullOrWhiteSpace(events))
+            {
+                return BadRequest(
+                    ApiResponseDto<string>.CreateFailure(
+                        "Beacon events payload is required."));
+            }
+
+            List<CreateActivityEventRequest>? requests;
+
+            try
+            {
+                requests = JsonSerializer.Deserialize<
+                    List<CreateActivityEventRequest>
+                >(
+                    events,
+                    new JsonSerializerOptions
+                    {
+                        PropertyNameCaseInsensitive = true
+                    });
+            }
+            catch (JsonException ex)
+            {
+                return BadRequest(
+                    ApiResponseDto<string>.CreateFailure(
+                        "Invalid beacon events payload."));
+            }
+
+            if (requests == null || requests.Count == 0)
+            {
+                return BadRequest(
+                    ApiResponseDto<string>.CreateFailure(
+                        "Beacon events payload is empty."));
+            }
+
+            var validRequests = requests
+                .Where(request =>
+                    request != null &&
+                    !string.IsNullOrWhiteSpace(request.SessionId) &&
+                    !string.IsNullOrWhiteSpace(request.CandidateId) &&
+                    !string.IsNullOrWhiteSpace(request.EventType) &&
+                    !string.IsNullOrWhiteSpace(request.Module))
+                .ToList();
+
+            if (validRequests.Count == 0)
+            {
+                return BadRequest(
+                    ApiResponseDto<string>.CreateFailure(
+                        "Beacon payload did not contain valid activity events."));
+            }
+
+            await _eventService.LogBatchEventsAsync(validRequests);
+
+            return Ok(
+                 ApiResponseDto<int>.CreateSuccess(
+                     validRequests.Count,
+                        "Beacon batch events logged successfully."));
         }
     }
 }
