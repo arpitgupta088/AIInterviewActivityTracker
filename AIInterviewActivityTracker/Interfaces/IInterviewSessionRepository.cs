@@ -38,8 +38,10 @@ namespace AIInterviewActivityTracker.Interfaces
         Task<List<InterviewSession>> GetCompletedSessionsAsync();
 
         /// <summary>
-        /// Retrives all sessions
+        /// Retrieves interview sessions using server-side pagination.
         /// </summary>
-        Task<IEnumerable<InterviewSession>> GetInterviewSessionsAsync();
+        Task<(IEnumerable<InterviewSession> Sessions, long TotalCount)>GetInterviewSessionsAsync(
+        int page,
+        int pageSize);
     }
 }

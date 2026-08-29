@@ -1,4 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs;
+using AIInterviewActivityTracker.DTOs;
 using AIInterviewActivityTracker.DTOs.InterviewSummary;
 using AIInterviewActivityTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;

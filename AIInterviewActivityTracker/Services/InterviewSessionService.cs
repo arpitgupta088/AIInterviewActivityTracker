@@ -139,21 +139,41 @@ namespace AIInterviewActivityTracker.Services
         }
 
         /// <summary>
-        /// Retrieves all interview sessions ordered by start time descending.
+        /// Retrieves interview sessions using server-side pagination.
         /// </summary>
-        public async Task<IEnumerable<InterviewSessionResponse>> GetAllSessionsAsync()
+        public async Task<(IEnumerable<InterviewSessionResponse> Sessions, long TotalCount
+        )> GetAllSessionsAsync(int page, int pageSize)
         {
-            var sessions = await _sessionRepository.GetInterviewSessionsAsync();
-
-            return sessions.Select(session => new InterviewSessionResponse
+            if (page < 1)
             {
-                SessionId = session.SessionId,
-                CandidateId = session.CandidateId,
-                InterviewId = session.InterviewId,
-                Status = session.Status,
-                StartTime = session.StartTime,
-                EndTime = session.EndTime
-            });
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
+
+            var (sessions, totalCount) =
+                await _sessionRepository.GetInterviewSessionsAsync(
+                    page,
+                    pageSize);
+
+            var sessionResponses = sessions.Select(session =>
+                new InterviewSessionResponse
+                {
+                    SessionId = session.SessionId,
+                    CandidateId = session.CandidateId,
+                    InterviewId = session.InterviewId,
+                    Status = session.Status,
+                    StartTime = session.StartTime,
+                    EndTime = session.EndTime
+                });
+
+            return (
+                sessionResponses,
+                totalCount
+            );
         }
     }
 }

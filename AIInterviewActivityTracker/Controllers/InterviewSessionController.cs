@@ -41,13 +41,48 @@ namespace AIInterviewActivityTracker.Controllers
                     "Session created successfully."));
         }
 
-
+        /// <summary>
+        /// Retrieves interview sessions using server-side pagination.
+        ///
+        /// Input:
+        /// - page: The page number to retrieve. Page numbering starts from 1.
+        /// - pageSize: The maximum number of interview sessions to retrieve
+        ///   for the requested page.
+        ///
+        /// Output:
+        /// - Returns the paginated interview sessions along with the total
+        ///   number of sessions and pagination information.
+        /// </summary>
+        /// 
         [HttpGet]
-        public async Task<IActionResult> GetAllSessions()
+        public async Task<IActionResult> GetAllSessions(
+            [FromQuery] int page = 1,
+            [FromQuery] int pageSize = 10)
         {
-            var sessions = await _sessionService.GetAllSessionsAsync();
+            if (page < 1)
+            {
+                page = 1;
+            }
 
-            return Ok(sessions);
+            if (pageSize < 1 || pageSize > 100)
+            {
+                pageSize = 10;
+            }
+
+            var (sessions, totalCount) =
+                await _sessionService.GetAllSessionsAsync(
+                    page,
+                    pageSize);
+
+            var response = new
+            {
+                TotalCount = totalCount,
+                Page = page,
+                PageSize = pageSize,
+                Sessions = sessions
+            };
+            return Ok(ApiResponseDto<object>.CreateSuccess(response,
+            "Interview sessions retrieved successfully."));
         }
 
         /// <summary>

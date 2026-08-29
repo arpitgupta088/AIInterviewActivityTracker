@@ -36,8 +36,20 @@ namespace AIInterviewActivityTracker.Interfaces
         Task<long> GetSessionCountByStatusAsync(string status);
 
         /// <summary>
-        /// Retrieves all interview sessions ordered by start time descending.
+        /// Retrieves interview sessions using server-side pagination.
+        ///
+        /// Input:
+        /// - page: The page number to retrieve. Page numbering starts from 1.
+        /// - pageSize: The maximum number of interview sessions to retrieve
+        ///   for the requested page.
+        ///
+        /// Output:
+        /// - Returns a tuple containing:
+        ///   - Sessions: The interview session responses for the requested page.
+        ///   - TotalCount: The total number of interview sessions available
+        ///     before pagination is applied.
         /// </summary>
-        Task<IEnumerable<InterviewSessionResponse>> GetAllSessionsAsync();
+        Task<(IEnumerable<InterviewSessionResponse> Sessions, long TotalCount)> 
+            GetAllSessionsAsync(int page, int pageSize);
     }
 }

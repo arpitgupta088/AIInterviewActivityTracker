@@ -143,21 +143,51 @@ namespace AIInterviewActivityTracker.Repositories
         }
 
         /// <summary>
-        /// Retrieves all interview sessions ordered by StartTime in descending order.
+        /// Retrieves interview sessions from MongoDB using server-side pagination.
         ///
         /// Input:
-        /// No input parameters.
+        /// - page: The page number to retrieve. Page numbering starts from 1.
+        /// - pageSize: The maximum number of interview sessions to retrieve
+        ///   for the requested page.
         ///
         /// Output:
-        /// Returns all persisted interview session documents.
+        /// - Returns a tuple containing:
+        ///   - Sessions: The interview sessions for the requested page,
+        ///     ordered by StartTime in descending order.
+        ///   - TotalCount: The total number of interview sessions available
+        ///     in the database before pagination is applied.
         /// </summary>
-
-        public async Task<IEnumerable<InterviewSession>> GetInterviewSessionsAsync()
+        /// 
+        public async Task<(IEnumerable<InterviewSession> Sessions, long TotalCount)>
+            GetInterviewSessionsAsync(
+                int page,
+                int pageSize)
         {
-            return await _sessionsCollection
-                .Find(_ => true)
-                .SortByDescending(x => x.StartTime)
+            if (page < 1)
+            {
+                page = 1;
+            }
+
+            if (pageSize < 1)
+            {
+                pageSize = 10;
+            }
+
+            var filter = Builders<InterviewSession>.Filter.Empty;
+
+            var totalCount = await _sessionsCollection
+                .CountDocumentsAsync(filter);
+
+            var skip = (page - 1) * pageSize;
+
+            var sessions = await _sessionsCollection
+                .Find(filter)
+                .SortByDescending(session => session.StartTime)
+                .Skip(skip)
+                .Limit(pageSize)
                 .ToListAsync();
+
+            return (sessions, totalCount);
         }
     }
 }
