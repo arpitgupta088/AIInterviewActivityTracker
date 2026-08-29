@@ -40,13 +40,35 @@ export const searchEvents = async (params) => {
   return response.data;
 };
 
-/**
- * Retrieves all Interview Sessions.
+/*
+ * Retrieves a paginated list of interview sessions.
+ *
+ * Input:
+ * - page: Current page number.
+ * - pageSize: Number of sessions to retrieve per page.
+ *
+ * Output:
+ * - Returns the paginated interview session response from the backend.
  */
-export const getAllSessions = async () => {
-  const response = await apiClient.get("/sessions");
+
+export const getAllSessions = async (page = 1, pageSize = 10) => {
+  if (!Number.isInteger(page) || page < 1) {
+    throw new Error("Page must be greater than or equal to 1.");
+  }
+
+  if (!Number.isInteger(pageSize) || pageSize < 1 || pageSize > 100) {
+    throw new Error("Page size must be between 1 and 100.");
+  }
+
+  const response = await apiClient.get("/sessions", {
+    params: {
+      page,
+      pageSize,
+    },
+  });
+
   return response.data;
-}
+};
 
 /**
  * Retrieves interview summary by Session ID.

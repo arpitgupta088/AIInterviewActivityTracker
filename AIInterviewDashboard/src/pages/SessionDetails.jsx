@@ -70,7 +70,7 @@ function SessionDetails() {
 
       const summaryResponse = await getInterviewSummary(sessionId);
 
-      setSummaryData(summaryResponse?.data ?? null);
+      setSummaryData(summaryResponse?.data ?? summaryResponse ?? null);
     }
     catch (error) {
       console.error("Failed to generate summary:", error);
@@ -128,12 +128,17 @@ function SessionDetails() {
           }
         }
 
-        const session = sessionResponse?.data ?? sessionResponse;
-        const events = eventsResponse?.data ?? eventsResponse;
-        const summary = summaryResponse?.data ?? null;
+        const session = sessionResponse?.data ?? sessionResponse ?? null;
 
-        setSessionData(session ?? null);
-        setEventsData(Array.isArray(events) ? events : []);
+        const events = Array.isArray(eventsResponse?.data) ? eventsResponse.data
+          : Array.isArray(eventsResponse)
+            ? eventsResponse
+            : [];
+
+        const summary = summaryResponse?.data ?? summaryResponse ?? null;
+
+        setSessionData(session);
+        setEventsData(events);
         setSummaryData(summary);
 
       } catch (error) {

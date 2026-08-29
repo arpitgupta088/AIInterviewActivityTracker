@@ -24,29 +24,35 @@ function Sessions() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState("");
 
+    const [page, setPage] = useState(1);
+    const [pageSize] = useState(10);
+    const [totalCount, setTotalCount] = useState(0);
+
     useEffect(() => {
         loadSessions();
-    }, []);
+    }, [page]);
 
     /**
-     * Loads all interview sessions from the backend API.
+     * Loads interview sessions for the currently selected page.
      *
      * Input:
-     * - No input parameters.
+     * - Uses the current page number and page size from component state.
      *
      * Output:
-     * - Updates sessions state, loading state, and error state.
+     * - Updates sessions, total count, loading state, and error state.
      */
     const loadSessions = async () => {
         try {
             setLoading(true);
             setError("");
 
-            const response = await getAllSessions();
+            const response = await getAllSessions(page, pageSize);
 
             const data = response?.data ?? response;
 
-            setSessions(Array.isArray(data) ? data : []);
+            setSessions(Array.isArray(data?.sessions) ? data.sessions : []);
+
+            setTotalCount(Number.isInteger(data?.totalCount) ? data.totalCount : 0);
         }
         catch (err) {
             console.error(err);
@@ -74,6 +80,10 @@ function Sessions() {
 
         return new Date(date).toLocaleString();
     };
+
+    const totalPages = Math.ceil(
+        totalCount / pageSize
+    );
 
     return (
         <>
@@ -139,9 +149,7 @@ function Sessions() {
                                     {loading ? (
 
                                         <div className="text-center py-5">
-
                                             <Spinner animation="border" />
-
                                         </div>
 
                                     ) : (
@@ -219,6 +227,7 @@ function Sessions() {
 
                                             </Table>
 
+
                                         </div>
 
                                     )}
@@ -226,6 +235,28 @@ function Sessions() {
                                 </Card.Body>
 
                             </Card>
+
+                            <div className="d-flex justify-content-between align-items-center mt-4">
+                                <button
+                                    className="btn btn-outline-primary"
+                                    disabled={page === 1}
+                                    onClick={() => setPage((previous) => previous - 1)}
+                                >
+                                    Previous
+                                </button>
+
+                                <span className="fw-semibold">
+                                    Page {page} of {totalPages}
+                                </span>
+
+                                <button
+                                    className="btn btn-outline-primary"
+                                    disabled={page >= totalPages || totalPages === 0}
+                                    onClick={() => setPage((previous) => previous + 1)}
+                                >
+                                    Next
+                                </button>
+                            </div>
 
                         </div>
                     </Col>
