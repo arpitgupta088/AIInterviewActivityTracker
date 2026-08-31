@@ -26,6 +26,8 @@ function useInterviewActivityTracking({
 
     const lastEventTime = useRef(0);
 
+    const networkOfflineStartedAt = useRef(null);
+
     useEffect(() => {
         if (!sessionId || !candidateId || !logEvent) {
             return;
@@ -79,6 +81,26 @@ function useInterviewActivityTracking({
                     }
                 );
             };
+        };
+
+        const handleWindowBlur = async () => {
+            await logEvent(
+                "WINDOW_BLURRED",
+                {
+                    reason: "WINDOW_LOST_FOCUS",
+                    timestamp: new Date().toISOString(),
+                }
+            );
+        };
+
+        const handleWindowFocus = async () => {
+            await logEvent(
+                "WINDOW_FOCUSED",
+                {
+                    reason: "WINDOW_GAINED_FOCUS",
+                    timestamp: new Date().toISOString(),
+                }
+            );
         };
 
         const handleFullscreenChange = async () => {
@@ -136,18 +158,54 @@ function useInterviewActivityTracking({
             handleFullscreenChange
         );
 
+        window.addEventListener("blur", handleWindowBlur);
+        window.addEventListener("focus", handleWindowFocus);
+
         const handleOffline = async () => {
+
+            if (networkOfflineStartedAt.current) {
+                return;
+            }
+
+            const timestamp = new Date().toISOString();
+
+            networkOfflineStartedAt.current = timestamp;
+
             await logEvent("NETWORK_OFFLINE", {
                 online: false,
-                timestamp: new Date().toISOString(),
+                timestamp,
             });
         };
 
         const handleOnline = async () => {
+
+            const timestamp = new Date().toISOString();
+
+            let disconnectedDurationMs = null;
+            let offlineStartedAt = null;
+
+            if (networkOfflineStartedAt.current) {
+                offlineStartedAt =
+                    networkOfflineStartedAt.current;
+
+                const offlineTime =
+                    new Date(offlineStartedAt).getTime();
+
+                const onlineTime =
+                    new Date(timestamp).getTime();
+
+                disconnectedDurationMs =
+                    onlineTime - offlineTime;
+            }
+
             await logEvent("NETWORK_ONLINE", {
                 online: true,
-                timestamp: new Date().toISOString(),
+                timestamp,
+                offlineStartedAt,
+                disconnectedDurationMs,
             });
+
+            networkOfflineStartedAt.current = null;
         };
 
         window.addEventListener("offline", handleOffline);
@@ -166,6 +224,10 @@ function useInterviewActivityTracking({
                 "fullscreenchange",
                 handleFullscreenChange
             );
+
+            window.removeEventListener("blur", handleWindowBlur);
+
+            window.removeEventListener("focus", handleWindowFocus);
 
             window.removeEventListener(
                 "offline",

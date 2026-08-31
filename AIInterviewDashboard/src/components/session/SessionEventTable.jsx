@@ -15,6 +15,7 @@ const EVENT_LABELS = {
   WINDOW_FOCUSED: "Window Focused",
   FULLSCREEN_ENTERED: "Fullscreen Entered",
   FULLSCREEN_EXITED: "Fullscreen Exited",
+  SCREEN_SHARE_GRANTED: "Screen Share Granted",
   SCREEN_SHARE_ENDED: "Screen Share Ended",
   VIDEO_COMPLETED: "Question Video Completed",
   INTRO_STARTED: "Introduction Started",
@@ -121,6 +122,23 @@ const formatMetadata = (metadataJson) => {
     );
   }
 
+  if (metadata.online === false) {
+    values.push("Network: Offline");
+  }
+
+  if (metadata.online === true) {
+    values.push("Network: Online");
+  }
+
+  if (metadata.disconnectedDurationMs != null) {
+    const durationInSeconds =
+      Number(metadata.disconnectedDurationMs) / 1000;
+
+    values.push(
+      `Disconnected for ${durationInSeconds.toFixed(1)} seconds`
+    );
+  }
+
   return values.length > 0
     ? values.join(" • ")
     : "—";
@@ -200,6 +218,22 @@ function SessionEventTable({ events = [] }) {
     sortOrder,
   ]);
 
+  const networkTimelineEvents = useMemo(() => {
+    const networkEvents = safeEvents.filter(
+      (event) =>
+        event.eventType === "NETWORK_OFFLINE" ||
+        event.eventType === "NETWORK_ONLINE"
+    );
+
+    return [...networkEvents].sort((a, b) => {
+      const dateA = new Date(a.timestamp).getTime();
+      const dateB = new Date(b.timestamp).getTime();
+
+      return dateA - dateB;
+    });
+  }, [safeEvents]);
+
+
   return (
     <Card className="shadow-sm border-0">
       <Card.Header className="bg-white py-3">
@@ -218,7 +252,7 @@ function SessionEventTable({ events = [] }) {
               variant={viewMode === "TIMELINE" ? "primary" : "outline-primary"}
               onClick={() => setViewMode("TIMELINE")}
             >
-              Timeline
+              Nwtwork Timeline
             </Button>
           </div>
 
@@ -291,62 +325,86 @@ function SessionEventTable({ events = [] }) {
             <p className="mb-1 fw-semibold">No matching events found.</p>
             <small> Try changing or clearing your search and filters.</small>
           </div>
-        ):
-          viewMode === "TABLE" ? (
-            <div className="table-responsive">
-              <Table hover className="align-middle mb-0">
-                <thead className="table-light">
-                  <tr>
-                    <th>Event Type</th>
-                    <th>Module</th>
-                    <th>Details</th>
-                    <th>Timestamp</th>
+        ) : viewMode === "TABLE" ? (
+          <div className="table-responsive">
+            <Table hover className="align-middle mb-0">
+              <thead className="table-light">
+                <tr>
+                  <th>Event Type</th>
+                  <th>Module</th>
+                  <th>Details</th>
+                  <th>Timestamp</th>
+                </tr>
+              </thead>
+
+              <tbody>
+                {filteredEvents.map((event, index) => (
+                  <tr
+                    key={
+                      event.id ||
+                      `${event.eventType}-${event.timestamp}-${index}`
+                    }
+                  >
+                    <td>
+                      <div className="fw-semibold">
+                        {formatEventType(event.eventType)}
+                      </div>
+
+                      {event.eventType && (
+                        <small className="text-muted">
+                          {event.eventType}
+                        </small>
+                      )}
+                    </td>
+
+                    <td>
+                      <span className="badge bg-light text-dark border">
+                        {event.module || "N/A"}
+                      </span>
+                    </td>
+
+                    <td className="text-muted">
+                      {formatMetadata(event.metadataJson)}
+                    </td>
+
+                    <td className="text-muted text-nowrap">
+                      {formatTimestamp(
+                        event.timestamp
+                      )}
+                    </td>
                   </tr>
-                </thead>
+                ))}
+              </tbody>
+            </Table>
+          </div>
+        ) : networkTimelineEvents.length === 0 ? (
+          <div className="text-center text-muted py-5 px-3">
+            <p className="mb-1 fw-semibold">
+              No network events recorded.
+            </p>
 
-                <tbody>
-                  {filteredEvents.map((event, index) => (
-                    <tr
-                      key={
-                        event.id ||
-                        `${event.eventType}-${event.timestamp}-${index}`
-                      }
-                    >
-                      <td>
-                        <div className="fw-semibold">
-                          {formatEventType(event.eventType)}
-                        </div>
+            <small>
+              Network interruptions will appear here when the
+              interview connection goes offline and comes back online.
+            </small>
+          </div>
+        ) : (
+          <div className="px-2 py-3">
+            {networkTimelineEvents.map((event, index) => {
+              const metadata = parseMetadata(event.metadataJson);
 
-                        {event.eventType && (
-                          <small className="text-muted">
-                            {event.eventType}
-                          </small>
-                        )}
-                      </td>
+              const isOffline =
+                event.eventType === "NETWORK_OFFLINE";
 
-                      <td>
-                        <span className="badge bg-light text-dark border">
-                          {event.module || "N/A"}
-                        </span>
-                      </td>
+              const durationMs =
+                metadata.disconnectedDurationMs;
 
-                      <td className="text-muted">
-                        {formatMetadata(event.metadataJson)}
-                      </td>
+              const durationText =
+                durationMs != null
+                  ? `${(Number(durationMs) / 1000).toFixed(1)} seconds`
+                  : null;
 
-                      <td className="text-muted text-nowrap">
-                        {formatTimestamp(
-                          event.timestamp
-                        )}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </Table>
-            </div>
-          ) : (
-            <div className="px-2 py-3">
-              {filteredEvents.map((event, index) => (
+              return (
                 <div
                   key={
                     event.id ||
@@ -360,22 +418,38 @@ function SessionEventTable({ events = [] }) {
 
                   <div className="border-start ps-3">
                     <div className="fw-semibold">
-                      {formatEventType(event.eventType)}
+                      {isOffline
+                        ? "Network Disconnected"
+                        : "Network Restored"}
                     </div>
 
                     <div className="small text-muted">
-                      {event.module || "N/A"}
+                      {isOffline
+                        ? "The user went offline."
+                        : "The user came back online."}
                     </div>
 
-                    <div className="small text-muted mt-1">
-                      {formatMetadata(event.metadataJson)}
-                    </div>
+                    {!isOffline && metadata.offlineStartedAt && (
+                      <div className="small text-muted mt-1">
+                        Offline since:{" "}
+                        {formatTimestamp(
+                          metadata.offlineStartedAt
+                        )}
+                      </div>
+                    )}
+
+                    {!isOffline && durationText && (
+                      <div className="small fw-semibold mt-1">
+                        Total disconnected duration:{" "}
+                        {durationText}
+                      </div>
+                    )}
                   </div>
                 </div>
-              ))}
-            </div>
-          )
-        }
+              );
+            })}
+          </div>
+        )}
       </Card.Body>
     </Card>
   );
