@@ -65,6 +65,12 @@ const formatTimestamp = (timestamp) => {
   return date.toLocaleString();
 };
 
+const getEventTimestamp = (event) => {
+  const metadata = parseMetadata(event.metadataJson);
+
+  return metadata.timestamp || event.timestamp;
+};
+
 const parseMetadata = (metadataJson) => {
   if (!metadataJson) {
     return {};
@@ -203,12 +209,12 @@ function SessionEventTable({ events = [] }) {
     });
 
     return [...filtered].sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
+      const sequenceA = Number(a.sequenceNumber) || 0;
+      const sequenceB = Number(b.sequenceNumber) || 0;
 
       return sortOrder === "LATEST"
-        ? dateB - dateA
-        : dateA - dateB;
+        ? sequenceB - sequenceA
+        : sequenceA - sequenceB;
     });
   }, [
     safeEvents,
@@ -226,8 +232,9 @@ function SessionEventTable({ events = [] }) {
     );
 
     return [...networkEvents].sort((a, b) => {
-      const dateA = new Date(a.timestamp).getTime();
-      const dateB = new Date(b.timestamp).getTime();
+      const dateA = new Date(getEventTimestamp(a)).getTime();
+
+      const dateB = new Date(getEventTimestamp(b)).getTime();
 
       return dateA - dateB;
     });
@@ -320,63 +327,65 @@ function SessionEventTable({ events = [] }) {
 
             <small> Activity events will appear here as the interview progresses. </small>
           </div>
-        ) : filteredEvents.length === 0 ? (
-          <div className="text-center text-muted py-5 px-3">
-            <p className="mb-1 fw-semibold">No matching events found.</p>
-            <small> Try changing or clearing your search and filters.</small>
-          </div>
         ) : viewMode === "TABLE" ? (
-          <div className="table-responsive">
-            <Table hover className="align-middle mb-0">
-              <thead className="table-light">
-                <tr>
-                  <th>Event Type</th>
-                  <th>Module</th>
-                  <th>Details</th>
-                  <th>Timestamp</th>
-                </tr>
-              </thead>
-
-              <tbody>
-                {filteredEvents.map((event, index) => (
-                  <tr
-                    key={
-                      event.id ||
-                      `${event.eventType}-${event.timestamp}-${index}`
-                    }
-                  >
-                    <td>
-                      <div className="fw-semibold">
-                        {formatEventType(event.eventType)}
-                      </div>
-
-                      {event.eventType && (
-                        <small className="text-muted">
-                          {event.eventType}
-                        </small>
-                      )}
-                    </td>
-
-                    <td>
-                      <span className="badge bg-light text-dark border">
-                        {event.module || "N/A"}
-                      </span>
-                    </td>
-
-                    <td className="text-muted">
-                      {formatMetadata(event.metadataJson)}
-                    </td>
-
-                    <td className="text-muted text-nowrap">
-                      {formatTimestamp(
-                        event.timestamp
-                      )}
-                    </td>
+          filteredEvents.length === 0 ? (
+            <div className="text-center text-muted py-5 px-3">
+              <p className="mb-1 fw-semibold">No matching events found.</p>
+              <small> Try changing or clearing your search and filters.</small>
+            </div>
+          ) : (
+            <div className="table-responsive">
+              <Table hover className="align-middle mb-0">
+                <thead className="table-light">
+                  <tr>
+                    <th>Event Type</th>
+                    <th>Module</th>
+                    <th>Details</th>
+                    <th>Timestamp</th>
                   </tr>
-                ))}
-              </tbody>
-            </Table>
-          </div>
+                </thead>
+
+                <tbody>
+                  {filteredEvents.map((event, index) => (
+                    <tr
+                      key={
+                        event.id ||
+                        `${event.eventType}-${event.timestamp}-${index}`
+                      }
+                    >
+                      <td>
+                        <div className="fw-semibold">
+                          {formatEventType(event.eventType)}
+                        </div>
+
+                        {event.eventType && (
+                          <small className="text-muted">
+                            {event.eventType}
+                          </small>
+                        )}
+                      </td>
+
+                      <td>
+                        <span className="badge bg-light text-dark border">
+                          {event.module || "N/A"}
+                        </span>
+                      </td>
+
+                      <td className="text-muted">
+                        {formatMetadata(event.metadataJson)}
+                      </td>
+
+                      <td className="text-muted text-nowrap">
+                        {formatTimestamp(
+                          getEventTimestamp(event)
+                        )}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </Table>
+            </div>
+          )
         ) : networkTimelineEvents.length === 0 ? (
           <div className="text-center text-muted py-5 px-3">
             <p className="mb-1 fw-semibold">
@@ -391,59 +400,200 @@ function SessionEventTable({ events = [] }) {
         ) : (
           <div className="px-2 py-3">
             {networkTimelineEvents.map((event, index) => {
-              const metadata = parseMetadata(event.metadataJson);
+              const metadata = parseMetadata(
+                event.metadataJson
+              );
 
               const isOffline =
                 event.eventType === "NETWORK_OFFLINE";
 
-              const durationMs =
-                metadata.disconnectedDurationMs;
+              const eventTimestamp =
+                getEventTimestamp(event);
+                
+              if (
+                event.eventType === "NETWORK_ONLINE" &&
+                metadata.offlineStartedAt
+              ) {
+                const durationMs =
+                  metadata.disconnectedDurationMs;
 
-              const durationText =
-                durationMs != null
-                  ? `${(Number(durationMs) / 1000).toFixed(1)} seconds`
-                  : null;
+                const durationText =
+                  durationMs != null
+                    ? `${(
+                      Number(durationMs) / 1000
+                    ).toFixed(1)} seconds`
+                    : "N/A";
 
+                return (
+                  <div
+                    key={
+                      event.id ||
+                      `${event.eventType}-${eventTimestamp}-${index}`
+                    }
+                    className="border rounded p-3 mb-4 shadow-sm bg-white"
+                  >
+                    <div className="d-flex gap-3">
+
+                      <div
+                        className="d-flex flex-column align-items-center"
+                        style={{ minWidth: "32px" }}
+                      >
+                        <div className="fs-5">
+                          🔴
+                        </div>
+
+                        <div
+                          className="border-start flex-grow-1 my-1"
+                          style={{
+                            minHeight: "55px",
+                          }}
+                        />
+
+                        <div className="fs-5">
+                          🟢
+                        </div>
+                      </div>
+
+                      {/* Timeline content */}
+                      <div className="flex-grow-1">
+
+                        {/* Offline */}
+                        <div>
+                          <div className="fw-semibold">
+                            Network Disconnected
+                          </div>
+
+                          <div className="small text-muted">
+                            {formatTimestamp(
+                              metadata.offlineStartedAt
+                            )}
+                          </div>
+                        </div>
+
+                        {/* Duration */}
+                        <div
+                          className="border rounded p-2 my-3 bg-light"
+                        >
+                          <div className="small text-muted">
+                            Connection interruption
+                          </div>
+
+                          <div className="fw-semibold">
+                            Disconnected for {durationText}
+                          </div>
+                        </div>
+
+                        {/* Online */}
+                        <div>
+                          <div className="fw-semibold">
+                            Network Restored
+                          </div>
+
+                          <div className="small text-muted">
+                            {formatTimestamp(
+                              eventTimestamp
+                            )}
+                          </div>
+                        </div>
+
+                      </div>
+                    </div>
+                  </div>
+                );
+              }
+              if (isOffline) {
+                const hasPairedOnlineEvent =
+                  networkTimelineEvents.some(
+                    (timelineEvent) => {
+                      if (
+                        timelineEvent.eventType !==
+                        "NETWORK_ONLINE"
+                      ) {
+                        return false;
+                      }
+
+                      const onlineMetadata =
+                        parseMetadata(
+                          timelineEvent.metadataJson
+                        );
+
+                      return (
+                        onlineMetadata.offlineStartedAt &&
+                        new Date(
+                          onlineMetadata.offlineStartedAt
+                        ).getTime() ===
+                        new Date(
+                          eventTimestamp
+                        ).getTime()
+                      );
+                    }
+                  );
+
+                if (hasPairedOnlineEvent) {
+                  return null;
+                }
+
+                return (
+                  <div
+                    key={
+                      event.id ||
+                      `${event.eventType}-${eventTimestamp}-${index}`
+                    }
+                    className="border rounded p-3 mb-4"
+                  >
+                    <div className="d-flex gap-3">
+
+                      <div className="fs-5">
+                        🔴
+                      </div>
+
+                      <div>
+                        <div className="fw-semibold">
+                          Network Disconnected
+                        </div>
+
+                        <div className="small text-muted">
+                          {formatTimestamp(
+                            eventTimestamp
+                          )}
+                        </div>
+
+                        <div className="small text-muted mt-1">
+                          Waiting for network connection
+                          to be restored...
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+                );
+              }
               return (
                 <div
                   key={
                     event.id ||
-                    `${event.eventType}-${event.timestamp}-${index}`
+                    `${event.eventType}-${eventTimestamp}-${index}`
                   }
-                  className="d-flex gap-3 mb-4"
+                  className="border rounded p-3 mb-4"
                 >
-                  <div className="text-muted text-nowrap">
-                    {formatTimestamp(event.timestamp)}
-                  </div>
+                  <div className="d-flex gap-3">
 
-                  <div className="border-start ps-3">
-                    <div className="fw-semibold">
-                      {isOffline
-                        ? "Network Disconnected"
-                        : "Network Restored"}
+                    <div className="fs-5">
+                      🟢
                     </div>
 
-                    <div className="small text-muted">
-                      {isOffline
-                        ? "The user went offline."
-                        : "The user came back online."}
-                    </div>
+                    <div>
+                      <div className="fw-semibold">
+                        Network Restored
+                      </div>
 
-                    {!isOffline && metadata.offlineStartedAt && (
-                      <div className="small text-muted mt-1">
-                        Offline since:{" "}
+                      <div className="small text-muted">
                         {formatTimestamp(
-                          metadata.offlineStartedAt
+                          eventTimestamp
                         )}
                       </div>
-                    )}
+                    </div>
 
-                    {!isOffline && durationText && (
-                      <div className="small fw-semibold mt-1">
-                        Total disconnected duration:{" "}
-                        {durationText}
-                      </div>
-                    )}
                   </div>
                 </div>
               );

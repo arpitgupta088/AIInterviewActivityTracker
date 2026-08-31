@@ -28,6 +28,61 @@ const ActivityTracker = (() => {
         eventQueue.flushWithBeacon();
     };
 
+    const handleApplicationError = (event) => {
+        if (!currentSessionId || !currentCandidateId) {
+            return;
+        }
+
+        ActivityTracker.trackEvent(
+            currentSessionId,
+            currentCandidateId,
+            "APPLICATION_ERROR",
+            "ERROR",
+            JSON.stringify({
+                message:
+                    event.message ||
+                    "Unknown JavaScript error",
+
+                filename:
+                    event.filename || "",
+
+                lineNumber:
+                    event.lineno || null,
+
+                columnNumber:
+                    event.colno || null,
+
+                timestamp:
+                    new Date().toISOString(),
+            })
+        );
+    };
+
+    const handleUnhandledPromiseRejection = (event) => {
+        if (!currentSessionId || !currentCandidateId) {
+            return;
+        }
+
+        ActivityTracker.trackEvent(
+            currentSessionId,
+            currentCandidateId,
+            "UNHANDLED_PROMISE_REJECTION",
+            "ERROR",
+            JSON.stringify({
+                reason:
+                    event.reason?.message ||
+                    String(
+                        event.reason ||
+                        "Unknown promise rejection"
+                    ),
+
+                timestamp:
+                    new Date().toISOString(),
+            })
+        );
+    };
+
+
     const initialize = (sessionId, candidateId) => {
         if (!sessionId?.trim() || !candidateId?.trim()) {
             return;
@@ -50,7 +105,31 @@ const ActivityTracker = (() => {
             handlePageHide
         );
 
+        window.addEventListener(
+            "error",
+            handleApplicationError
+        );
+
+        window.addEventListener(
+            "unhandledrejection",
+            handleUnhandledPromiseRejection
+        );
+
         isInitialized = true;
+
+        ActivityTracker.trackEvent(
+            currentSessionId,
+            currentCandidateId,
+            "PAGE_LOAD",
+            "BROWSER_LIFECYCLE",
+            JSON.stringify({
+                timestamp: new Date().toISOString(),
+            })
+        );
+
+        if (navigator.onLine) {
+            eventQueue.flush();
+        }
     };
 
     const trackEvent = (

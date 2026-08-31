@@ -159,10 +159,8 @@ function useInterviewActivityTracking({
         );
 
         window.addEventListener("blur", handleWindowBlur);
-        window.addEventListener("focus", handleWindowFocus);
 
         const handleOffline = async () => {
-
             if (networkOfflineStartedAt.current) {
                 return;
             }
@@ -178,7 +176,6 @@ function useInterviewActivityTracking({
         };
 
         const handleOnline = async () => {
-
             const timestamp = new Date().toISOString();
 
             let disconnectedDurationMs = null;
@@ -208,9 +205,17 @@ function useInterviewActivityTracking({
             networkOfflineStartedAt.current = null;
         };
 
-        window.addEventListener("offline", handleOffline);
+        window.addEventListener(
+            "offline",
+            handleOffline
+        );
 
-        window.addEventListener("online", handleOnline);
+        window.addEventListener(
+            "online",
+            handleOnline
+        );
+
+        window.addEventListener("focus", handleWindowFocus);
 
         window.addEventListener("pagehide", handlePageHide);
 
