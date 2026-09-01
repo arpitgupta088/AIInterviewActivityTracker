@@ -7,17 +7,17 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="wwwroot\Client\**" />
+    <Content Remove="wwwroot\Client\**" />
+    <EmbeddedResource Remove="wwwroot\Client\**" />
+    <None Remove="wwwroot\Client\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="FluentValidation.AspNetCore" Version="11.3.1" />
     <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
     <PackageReference Include="MongoDB.Driver" Version="3.10.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="10.2.3" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <None Include="wwwroot\Client\apiClient.js" />
-    <None Include="wwwroot\Client\beaconTracker.js" />
-    <None Include="wwwroot\Client\index.html" />
-    <None Include="wwwroot\Client\tracker.js" />
   </ItemGroup>
 
   <ItemGroup>

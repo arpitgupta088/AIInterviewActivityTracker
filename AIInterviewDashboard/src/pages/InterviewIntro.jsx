@@ -123,7 +123,7 @@ function InterviewIntro() {
         }),
       });
     } catch (error) {
-      console.error(error);
+      console.error("Failed to log intro completed event:", error);
     }
   };
 
@@ -162,7 +162,7 @@ function InterviewIntro() {
         }),
       });
     } catch (error) {
-      console.error(error);
+      console.error("Failed to log intro skipped event:", error);
     }
   };
 

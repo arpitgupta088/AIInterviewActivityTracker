@@ -17,6 +17,7 @@ import WebcamRecorder from "../components/interview/WebcamRecorder";
 import useInterviewActivityTracking from "../hooks/useInterviewActivityTracking";
 
 import { createActivityEvent, uploadRecording, updateSessionStatus } from "../services/interviewService";
+import ActivityTracker from "../services/activityTracker";
 import recordingService from "../services/recordingService";
 
 /**
@@ -329,23 +330,26 @@ function InterviewQuestion() {
             }
         );
 
-        await logEvent(
-            "NEXT_QUESTION_CLICKED",
-            {
-                questionNumber,
-            }
-        );
-
         if (
             currentQuestionIndex <
             questions.length - 1
         ) {
+            await logEvent(
+                "NEXT_QUESTION_CLICKED",
+                {
+                    questionNumber,
+                }
+            );
+
             setCurrentQuestionIndex(
                 (previous) => previous + 1
             );
 
             return;
         }
+
+        // Last question
+        isEndingInterviewRef.current = true;
 
         const sessionUploaded = await handleStopAndUploadSessionRecording();
 
@@ -367,6 +371,8 @@ function InterviewQuestion() {
                 totalQuestions: questions.length,
             }
         );
+
+        ActivityTracker.flush();
 
         navigate(
             "/interview/complete",
@@ -404,48 +410,62 @@ function InterviewQuestion() {
 
         isEndingInterviewRef.current = true;
 
+        try {
+            if (isRecording) {
+                const uploaded =
+                    await handleStopAndUploadRecording();
 
-        if (isRecording) {
-            const uploaded = await handleStopAndUploadRecording();
-
-            if (!uploaded) {
-                return;
+                if (!uploaded) {
+                    throw new Error(
+                        "Question recording upload failed."
+                    );
+                }
             }
-        }
 
-        const sessionUploaded = await handleStopAndUploadSessionRecording();
+            const sessionUploaded = await handleStopAndUploadSessionRecording();
 
-        if (!sessionUploaded) {
+            if (!sessionUploaded) {
+                throw new Error(
+                    "Session recording upload failed."
+                );
+            }
+
+            webcamRef.current?.stopCamera();
+
+            await updateSessionStatus({
+                sessionId,
+                status: "ABORTED",
+            });
+
+            await logEvent("INTERVIEW_ABORTED",
+                {
+                    questionNumber,
+                    reason,
+                }
+            );
+
+            ActivityTracker.flush();
+
+            navigate(
+                "/interview/complete",
+                {
+                    state: {
+                        sessionId,
+                        candidateId,
+                        interviewId,
+                        email,
+                        status: "ABORTED",
+                    },
+                }
+            );
+        } catch (error) {
+            console.error(
+                "End interview failed:",
+                error
+            );
+
             isEndingInterviewRef.current = false;
-            return;
         }
-
-        webcamRef.current?.stopCamera();
-
-        await updateSessionStatus({
-            sessionId,
-            status: "ABORTED",
-        });
-
-        await logEvent("INTERVIEW_ABORTED",
-            {
-                questionNumber,
-                reason,
-            }
-        );
-
-        navigate(
-            "/interview/complete",
-            {
-                state: {
-                    sessionId,
-                    candidateId,
-                    interviewId,
-                    email,
-                    status: "ABORTED",
-                },
-            }
-        );
     };
 
     /**
@@ -610,9 +630,7 @@ function InterviewQuestion() {
 
                         <Button
                             variant="danger"
-                            onClick={
-                                handleEndInterview
-                            }
+                            onClick={() => handleEndInterview()}
                             disabled={
                                 isInterviewLocked || isUploading || isSessionUploading
                             }

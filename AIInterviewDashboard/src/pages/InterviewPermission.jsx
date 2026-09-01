@@ -95,6 +95,17 @@ function InterviewPermission() {
 
       screenGranted =true;
 
+      await createActivityEvent({
+        sessionId,
+        candidateId,
+        eventType: "SCREEN_SHARE_GRANTED",
+        module: "PERMISSION",
+        metadataJson: JSON.stringify({
+          screen: true,
+          timestamp: new Date().toISOString(),
+        }),
+      });
+
       recordingService.startSessionRecording(displayStream, cameraStream);
 
       await createActivityEvent({

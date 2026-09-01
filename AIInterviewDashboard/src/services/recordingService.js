@@ -221,6 +221,8 @@ class RecordingService {
           endedAt,
         };
 
+        this.sessionStoppedResult = result;
+
         this.sessionMediaRecorder = null;
         this.sessionRecordedChunks = [];
 
@@ -403,21 +405,34 @@ class RecordingService {
       throw new Error("A valid session recording is required.");
     }
 
+    if (!(startedAt instanceof Date)) {
+      throw new Error("Session recording start time is required.");
+    }
+
     const file = new File([blob], `session-${sessionId.trim()}.webm`,
       {
         type: blob.type || "video/webm",
       });
 
     const formData = new FormData();
-    formData.append("SessionId", sessionId.trim());
-    formData.append("CandidateId", candidateId.trim());
-    formData.append("Recording", file);
-    formData.append("StartedAt", startedAt.toISOString());
-    if (endedAt) {
-      formData.append("EndedAt", endedAt.toISOString());
-    }
 
-    const response = await apiClient.post("/session-recordings/upload", formData);
+    formData.append("recording", file);
+    const response = await apiClient.post(
+      `/session-recordings/upload/${encodeURIComponent(
+        sessionId.trim()
+      )}`,
+      formData,
+      {
+        params: {
+          candidateId: candidateId.trim(),
+          startedAt: startedAt.toISOString(),
+          endedAt: endedAt
+            ? endedAt.toISOString()
+            : null,
+        },
+      }
+    );
+
     return response.data;
   }
 

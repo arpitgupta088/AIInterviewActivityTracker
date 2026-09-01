@@ -191,14 +191,17 @@ export const uploadRecording = async ({
 
   const formData = new FormData();
 
-  formData.append("SessionId", sessionId.trim());
-  formData.append("CandidateId", candidateId.trim());
-  formData.append("QuestionNumber", questionNumber.toString());
-  formData.append("Recording", file);
+  formData.append("recording", file);
 
   const response = await apiClient.post(
-    "/recordings/upload",
-    formData
+    `/recordings/upload/${encodeURIComponent(sessionId.trim())}`,
+    formData,
+    {
+      params: {
+        candidateId: candidateId.trim(),
+        questionNumber,
+      },
+    }
   );
 
   return response.data;

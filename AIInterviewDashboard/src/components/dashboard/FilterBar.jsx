@@ -113,6 +113,10 @@ function FilterBar({
       label: "Screen Share Ended",
     },
     {
+      value: "SCREEN_SHARE_GRANTED",
+      label: "Screen Share Granted",
+    },
+    {
       value: "SESSION_RECORDING_UPLOADED",
       label: "Session Recording Uploaded",
     },
