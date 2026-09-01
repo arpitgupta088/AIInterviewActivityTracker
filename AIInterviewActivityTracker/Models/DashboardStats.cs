@@ -1,10 +1,9 @@
-﻿namespace AIInterviewActivityTracker.DTOs.Dashboard
+﻿namespace AIInterviewActivityTracker.Models
 {
-
     /// <summary>
-    /// Represents aggregated interview session statistics for the dashboard
+    /// Represents aggregated statistics required for the dashboard.
     /// </summary>
-    public class DashboardStatsResponse
+    public class DashboardStats
     {
         public long TotalSessions { get; set; }
 

@@ -1,11 +1,11 @@
-﻿namespace AIInterviewActivityTracker.DTOs
+﻿namespace AIInterviewActivityTracker.Models
 {
     /// <summary>
     /// Standard API response wrapper used across all application endpoints.
     /// Ensures a consistent JSON response structure.
     /// </summary>
     /// <typeparam name="T">Type of the response payload.</typeparam>
-    public class ApiResponseDto<T>
+    public class ApiResponse<T>
     {
         /// <summary>
         /// Indicates whether the request was processed successfully.
@@ -30,14 +30,11 @@
         /// <summary>
         /// Creates a successful API response.
         /// </summary>
-        /// <param name="data">Response payload.</param>
-        /// <param name="message">Success message.</param>
-        /// <returns>A successful API response.</returns>
-        public static ApiResponseDto<T> CreateSuccess(
+        public static ApiResponse<T> CreateSuccess(
             T data,
             string message = "Request processed successfully.")
         {
-            return new ApiResponseDto<T>
+            return new ApiResponse<T>
             {
                 Success = true,
                 Message = message,
@@ -48,11 +45,9 @@
         /// <summary>
         /// Creates a failed API response.
         /// </summary>
-        /// <param name="message">Failure message.</param>
-        /// <returns>A failed API response.</returns>
-        public static ApiResponseDto<T> CreateFailure(string message)
+        public static ApiResponse<T> CreateFailure(string message)
         {
-            return new ApiResponseDto<T>
+            return new ApiResponse<T>
             {
                 Success = false,
                 Message = message

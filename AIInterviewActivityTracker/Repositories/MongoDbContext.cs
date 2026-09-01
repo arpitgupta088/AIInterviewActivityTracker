@@ -2,7 +2,7 @@
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
-namespace AIInterviewActivityTracker.Database
+namespace AIInterviewActivityTracker.Repositories
 {
     /// <summary>
     /// Centralized Database Context using a Singleton MongoClient instance.

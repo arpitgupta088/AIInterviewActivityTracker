@@ -1,7 +1,5 @@
 ﻿using AIInterviewActivityTracker.Constants;
-using AIInterviewActivityTracker.DTOs;
-using AIInterviewActivityTracker.DTOs.ActivityEvent;
-using AIInterviewActivityTracker.DTOs.Dashboard;
+using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -50,15 +48,15 @@ namespace AIInterviewActivityTracker.Controllers
                 activeSessionsTask,
                 totalEventsTask);
 
-            var stats = new DashboardStatsResponse
+            var stats = new DashboardStats
             {
                 TotalSessions = await totalSessionsTask,
                 ActiveSessions = await activeSessionsTask,
                 TotalEvents = await totalEventsTask
             };
 
-            return Ok(
-                ApiResponseDto<DashboardStatsResponse>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<DashboardStats>.CreateSuccess(
                     stats,
                     "Dashboard statistics retrieved successfully."));
         }
@@ -68,25 +66,25 @@ namespace AIInterviewActivityTracker.Controllers
         /// </summary>
         [HttpGet("recent-events")]
         [ProducesResponseType(
-            typeof(ApiResponseDto<List<ActivityEventResponse>>), StatusCodes.Status200OK)]
+            typeof(ApiResponse<List<ActivityEvent>>), StatusCodes.Status200OK)]
         [ProducesResponseType(
-            typeof(ApiResponseDto<List<ActivityEventResponse>>), StatusCodes.Status400BadRequest)]
+            typeof(ApiResponse<List<ActivityEvent>>), StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetRecentEvents(
             [FromQuery] int limit = 10)
         {
             if (limit < 1 || limit > 100)
             {
-                return BadRequest(
+                return base.BadRequest(
 
-                    ApiResponseDto<List<ActivityEventResponse>>.CreateFailure(
+                    ApiResponse<List<ActivityEvent>>.CreateFailure(
                     "Limit must be between 1 and 100."));
             }
 
             var events =
                 await _eventService.GetRecentEventsAsync(limit);
 
-            return Ok(
-                ApiResponseDto<List<ActivityEventResponse>>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<List<ActivityEvent>>.CreateSuccess(
                     events,
                     "Recent events retrieved successfully."));
         }
@@ -96,18 +94,18 @@ namespace AIInterviewActivityTracker.Controllers
         /// </summary>
         [HttpGet("timeline/{sessionId}")]
         [ProducesResponseType(
-            typeof(ApiResponseDto<List<ActivityEventResponse>>),
+            typeof(ApiResponse<List<ActivityEvent>>),
             StatusCodes.Status200OK)]
         [ProducesResponseType(
-            typeof(ApiResponseDto<string>),
+            typeof(ApiResponse<string>),
             StatusCodes.Status400BadRequest)]
         public async Task<IActionResult> GetSessionTimeline(
             string sessionId)
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "SessionId is required."));
             }
 
@@ -115,8 +113,8 @@ namespace AIInterviewActivityTracker.Controllers
                 await _eventService.GetEventsBySessionIdAsync(
                     sessionId.Trim());
 
-            return Ok(
-                ApiResponseDto<List<ActivityEventResponse>>
+            return base.Ok(
+                ApiResponse<List<ActivityEvent>>
                     .CreateSuccess(
                         timeline,
                         "Session timeline retrieved successfully."));

@@ -1,4 +1,4 @@
-﻿using AIInterviewActivityTracker.Database;
+﻿using AIInterviewActivityTracker.Repositories;
 using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 using MongoDB.Driver;
@@ -75,7 +75,7 @@ namespace AIInterviewActivityTracker.Repositories
                 normalizedSessionId);
 
             return await _eventsCollection
-                .Find(filter).SortBy(e => e.Timestamp)
+                .Find(filter).SortBy(e => e.SequenceNumber).ThenBy(e => e.Timestamp).ThenBy(e => e.CreatedAt)
                 .ToListAsync();
         }
 
@@ -94,6 +94,7 @@ namespace AIInterviewActivityTracker.Repositories
             return await _eventsCollection
                 .Find(Builders<ActivityEvent>.Filter.Empty)
                 .SortByDescending(e => e.Timestamp)
+                .ThenByDescending(e => e.CreatedAt)
                 .Limit(limit)
                 .ToListAsync();
         }
@@ -166,6 +167,7 @@ namespace AIInterviewActivityTracker.Repositories
                 await _eventsCollection
                     .Find(filter)
                     .SortByDescending(e => e.Timestamp)
+                    .ThenByDescending(e => e.CreatedAt)
                     .Skip((page - 1) * pageSize)
                     .Limit(pageSize)
                     .ToListAsync();

@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs;
-using AIInterviewActivityTracker.DTOs.SessionRecording;
+﻿using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -25,22 +24,24 @@ public class SessionRecordingController : ControllerBase
     /// <summary>
     /// Uploads the complete recording of an interview session.
     /// </summary>
-    [HttpPost("upload")]
+    [HttpPost("upload/{sessionId}")]
     [Consumes("multipart/form-data")]
     public async Task<IActionResult> Upload(
-        [FromForm] UploadSessionRecordingRequest request)
+        string sessionId,
+        [FromQuery] string candidateId,
+        [FromQuery] DateTime startedAt,
+        [FromQuery] DateTime? endedAt,
+        IFormFile recording)
     {
-        if (!ModelState.IsValid)
-        {
-            return BadRequest(
-                ApiResponseDto<string>.CreateFailure(
-                    "Invalid session recording upload request."));
-        }
+        var result = await _sessionRecordingService.UploadAsync(
+            sessionId,
+            candidateId,
+            recording,
+            startedAt,
+            endedAt);
 
-        var result = await _sessionRecordingService.UploadAsync(request);
-
-        return Ok(
-            ApiResponseDto<SessionRecordingResponse>.CreateSuccess(
+        return base.Ok(
+            ApiResponse<SessionRecording>.CreateSuccess(
                 result,
                 "Session recording uploaded successfully."));
     }
@@ -55,13 +56,13 @@ public class SessionRecordingController : ControllerBase
 
         if (recording is null)
         {
-            return NotFound(
-                ApiResponseDto<string>.CreateFailure(
+            return base.NotFound(
+                ApiResponse<string>.CreateFailure(
                     $"No session recording was found for session '{sessionId}'."));
         }
 
-        return Ok(
-            ApiResponseDto<SessionRecordingResponse>.CreateSuccess(
+        return base.Ok(
+            ApiResponse<SessionRecording>.CreateSuccess(
                 recording,
                 "Session recording retrieved successfully."));
     }
@@ -92,13 +93,13 @@ public class SessionRecordingController : ControllerBase
 
         if (!deleted)
         {
-            return NotFound(
-                ApiResponseDto<string>.CreateFailure(
+            return base.NotFound(
+                ApiResponse<string>.CreateFailure(
                     $"Session recording '{recordingId}' was not found."));
         }
 
-        return Ok(
-            ApiResponseDto<bool>.CreateSuccess(
+        return base.Ok(
+            ApiResponse<bool>.CreateSuccess(
                 true,
                 "Session recording deleted successfully."));
     }

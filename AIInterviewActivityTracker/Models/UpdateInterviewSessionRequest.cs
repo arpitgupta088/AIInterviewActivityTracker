@@ -1,4 +1,4 @@
-﻿namespace AIInterviewActivityTracker.DTOs.InterviewSession
+﻿namespace AIInterviewActivityTracker.Models
 {
     /// <summary>
     /// Request payload for updating an existing interview session state.
@@ -6,8 +6,9 @@
     public class UpdateInterviewSessionRequest
     {
         public string SessionId { get; set; } = string.Empty;
+
         /// <summary>
-        /// Status: COMPLETED, ABORTED
+        /// Status: IN_PROGRESS, COMPLETED, ABORTED
         /// </summary>
         public string Status { get; set; } = string.Empty;
     }

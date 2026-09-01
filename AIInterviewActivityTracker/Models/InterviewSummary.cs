@@ -1,5 +1,6 @@
 using MongoDB.Bson;
 using MongoDB.Bson.Serialization.Attributes;
+using System.Text.Json.Serialization;
 
 namespace AIInterviewActivityTracker.Models
 {
@@ -11,7 +12,7 @@ namespace AIInterviewActivityTracker.Models
     {
         [BsonId]
         [BsonRepresentation(BsonType.ObjectId)]
-        public string? Id { get; set; }
+        public string Id { get; set; } = string.Empty;
 
         [BsonElement("sessionId")]
         public string SessionId { get; set; } = string.Empty;
@@ -34,9 +35,11 @@ namespace AIInterviewActivityTracker.Models
         [BsonElement("summaryNotes")]
         public string SummaryNotes { get; set; } = string.Empty;
 
+        [JsonIgnore]
         [BsonElement("createdAt")]
         public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
+        [JsonIgnore]
         [BsonElement("updatedAt")]
         public DateTime? UpdatedAt { get; set; }
     }

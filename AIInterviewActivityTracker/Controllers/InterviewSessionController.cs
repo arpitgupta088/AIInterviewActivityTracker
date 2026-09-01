@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs;
-using AIInterviewActivityTracker.DTOs.InterviewSession;
+﻿using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Services;
 using Microsoft.AspNetCore.Mvc;
@@ -29,14 +28,14 @@ namespace AIInterviewActivityTracker.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure("Invalid request payload."));
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure("Invalid request payload."));
             }
 
-            var result = await _sessionService.CreateSessionAsync(request);
+            var result = await _sessionService.CreateSessionAsync(request.SessionId, request.CandidateId, request.InterviewId);
 
-            return Ok(
-                ApiResponseDto<InterviewSessionResponse>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<object>.CreateSuccess(
                     result,
                     "Session created successfully."));
         }
@@ -81,7 +80,7 @@ namespace AIInterviewActivityTracker.Controllers
                 PageSize = pageSize,
                 Sessions = sessions
             };
-            return Ok(ApiResponseDto<object>.CreateSuccess(response,
+            return base.Ok(ApiResponse<object>.CreateSuccess(response,
             "Interview sessions retrieved successfully."));
         }
 
@@ -95,13 +94,13 @@ namespace AIInterviewActivityTracker.Controllers
 
             if (result == null)
             {
-                return NotFound(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.NotFound(
+                    ApiResponse<string>.CreateFailure(
                         $"Session '{sessionId}' was not found."));
             }
 
-            return Ok(
-                ApiResponseDto<InterviewSessionResponse>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<object>.CreateSuccess(
                     result,
                     "Session retrieved successfully."));
         }
@@ -114,21 +113,21 @@ namespace AIInterviewActivityTracker.Controllers
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure("Invalid request payload."));
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure("Invalid request payload."));
             }
 
-            var isSuccess = await _sessionService.UpdateSessionStatusAsync(request);
+            var isSuccess = await _sessionService.UpdateSessionStatusAsync(request.SessionId, request.Status);
 
             if (!isSuccess)
             {
-                return NotFound(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.NotFound(
+                    ApiResponse<string>.CreateFailure(
                         "Session not found or status could not be updated."));
             }
 
-            return Ok(
-                ApiResponseDto<bool>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<bool>.CreateSuccess(
                     true,
                     "Session status updated successfully."));
         }

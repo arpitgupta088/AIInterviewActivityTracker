@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs.SessionRecording;
-using AIInterviewActivityTracker.Interfaces;
+﻿using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Services;
@@ -39,43 +38,47 @@ public class SessionRecordingService : ISessionRecordingService
     /// session and recording metadata.
     ///
     /// Output:
-    /// Returns the persisted session recording response.
+    /// Returns the persisted session recording.
     /// </summary>
-    public async Task<SessionRecordingResponse> UploadAsync(UploadSessionRecordingRequest request)
+    public async Task<SessionRecording> UploadAsync(
+        string sessionId,
+        string candidateId,
+        IFormFile recording,
+        DateTime startedAt,
+        DateTime? endedAt)
     {
-        ArgumentNullException.ThrowIfNull(request);
 
-        if (string.IsNullOrWhiteSpace(request.SessionId))
+        if (string.IsNullOrWhiteSpace(sessionId))
         {
             throw new ArgumentException(
                 "Session ID is required.",
-                nameof(request));
+                nameof(sessionId));
         }
 
-        if (string.IsNullOrWhiteSpace(request.CandidateId))
+        if (string.IsNullOrWhiteSpace(candidateId))
         {
             throw new ArgumentException(
                 "Candidate ID is required.",
-                nameof(request));
+                nameof(candidateId));
         }
 
-        ArgumentNullException.ThrowIfNull(request.Recording);
+        ArgumentNullException.ThrowIfNull(recording);
 
-        if (request.Recording.Length <= 0)
+        if (recording.Length <= 0)
         {
             throw new ArgumentException(
                 "Recording file cannot be empty.",
-                nameof(request));
+                nameof(recording));
         }
 
-        if (request.Recording.Length > MaxFileSize)
+        if (recording.Length > MaxFileSize)
         {
             throw new ArgumentException(
                 "Session recording exceeds the allowed file size.",
-                nameof(request));
+                nameof(recording));
         }
 
-        var normalizedContentType = request.Recording.ContentType?
+        var normalizedContentType = recording.ContentType?
         .Split(';', StringSplitOptions.RemoveEmptyEntries)[0]
         .Trim()
         .ToLowerInvariant();
@@ -84,22 +87,22 @@ public class SessionRecordingService : ISessionRecordingService
         {
             throw new ArgumentException(
                 "Recording content type is required.",
-                nameof(request));
+                nameof(recording));
         }
 
         if (!AllowedContentTypes.Contains(normalizedContentType))
         {
             throw new ArgumentException(
                 "Unsupported session recording format.",
-                nameof(request));
+                nameof(recording));
         }
 
-        if (request.EndedAt.HasValue &&
-            request.EndedAt.Value < request.StartedAt)
+        if (endedAt.HasValue &&
+            endedAt.Value < startedAt)
         {
             throw new ArgumentException(
                 "Recording end time cannot be earlier than start time.",
-                nameof(request));
+                nameof(endedAt));
         }
 
         var recordingsDirectory = Path.Combine(
@@ -138,24 +141,24 @@ public class SessionRecordingService : ISessionRecordingService
                 bufferSize: 81920,
                 useAsync: true);
 
-            await request.Recording.CopyToAsync(fileStream);
+            await recording.CopyToAsync(fileStream);
 
-            var recording = new SessionRecording
+            var sessionRecording = new SessionRecording
             {
-                SessionId = request.SessionId.Trim(),
-                CandidateId = request.CandidateId.Trim(),
+                SessionId = sessionId.Trim(),
+                CandidateId = candidateId.Trim(),
                 FileName = fileName,
                 FilePath = relativeFilePath,
                 ContentType = normalizedContentType,
-                FileSize = request.Recording.Length,
-                StartedAt = request.StartedAt,
-                EndedAt = request.EndedAt,
+                FileSize = recording.Length,
+                StartedAt = startedAt,
+                EndedAt = endedAt,
                 CreatedAt = DateTime.UtcNow
             };
 
-            var createdRecording = await _repository.CreateSessionRecordingAsync(recording);
+            var createdRecording = await _repository.CreateSessionRecordingAsync(sessionRecording);
 
-            return MapToResponse(createdRecording);
+            return createdRecording;
         }
         catch
         {
@@ -175,9 +178,9 @@ public class SessionRecordingService : ISessionRecordingService
     /// sessionId - Unique identifier of the interview session.
     ///
     /// Output:
-    /// Returns the session recording response, or null when no recording exists.
+    /// Returns the session recording, or null when no recording exists.
     /// </summary>
-    public async Task<SessionRecordingResponse?> GetBySessionIdAsync(string sessionId)
+    public async Task<SessionRecording?> GetBySessionIdAsync(string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
         {
@@ -189,9 +192,7 @@ public class SessionRecordingService : ISessionRecordingService
         var recording =
             await _repository.GetBySessionIdAsync(sessionId.Trim());
 
-        return recording is null
-            ? null
-            : MapToResponse(recording);
+        return recording;
     }
 
     /// <summary>
@@ -339,24 +340,5 @@ public class SessionRecordingService : ISessionRecordingService
         }
 
         return fullPath;
-    }
-
-    private static SessionRecordingResponse MapToResponse(SessionRecording recording)
-    {
-        ArgumentNullException.ThrowIfNull(recording);
-
-        return new SessionRecordingResponse
-        {
-            Id = recording.Id,
-            SessionId = recording.SessionId,
-            CandidateId = recording.CandidateId,
-            FileName = recording.FileName,
-            FilePath = recording.FilePath,
-            ContentType = recording.ContentType,
-            FileSize = recording.FileSize,
-            StartedAt = recording.StartedAt,
-            EndedAt = recording.EndedAt,
-            CreatedAt = recording.CreatedAt
-        };
     }
 }

@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs.Recording;
-using AIInterviewActivityTracker.Interfaces;
+﻿using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Services;
@@ -32,9 +31,11 @@ public class RecordingService : IRecordingService
     /// <summary>
     /// Uploads a recording, stores the physical file, and persists its metadata.
     /// </summary>
-    public async Task<RecordingResponse> UploadRecordingAsync(
+    public async Task<Recording> UploadRecordingAsync(
         string sessionId,
-        UploadRecordingRequest request)
+        string candidateId,
+        int questionNumber,
+        IFormFile recording)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
         {
@@ -43,52 +44,53 @@ public class RecordingService : IRecordingService
                 nameof(sessionId));
         }
 
-        ArgumentNullException.ThrowIfNull(request);
-
-        if (!string.Equals(
-                sessionId.Trim(),
-                request.SessionId?.Trim(),
-                StringComparison.Ordinal))
-        {
-            throw new ArgumentException(
-                "Session ID does not match the request.",
-                nameof(request));
-        }
-
-        if (string.IsNullOrWhiteSpace(request.CandidateId))
+        if (string.IsNullOrWhiteSpace(candidateId))
         {
             throw new ArgumentException(
                 "Candidate ID is required.",
-                nameof(request));
+                nameof(candidateId));
         }
 
-        if (request.QuestionNumber <= 0)
+        if (questionNumber <= 0)
         {
             throw new ArgumentException(
                 "Question number must be greater than zero.",
-                nameof(request));
+                nameof(questionNumber));
         }
 
-        ArgumentNullException.ThrowIfNull(request.Recording);
+        ArgumentNullException.ThrowIfNull(recording);
 
-        if (request.Recording.Length <= 0)
+        if (recording.Length <= 0)
         {
             throw new ArgumentException(
                 "Recording file cannot be empty.",
-                nameof(request));
+                nameof(recording));
         }
 
-        if (request.Recording.Length > MaxFileSize)
+        if (recording.Length > MaxFileSize)
         {
             throw new ArgumentException(
                 "Recording file size exceeds the allowed limit.",
-                nameof(request));
+                nameof(recording));
         }
 
-        if (!AllowedContentTypes.Contains(request.Recording.ContentType))
+        var normalizedContentType = recording.ContentType?
+        .Split(';', StringSplitOptions.RemoveEmptyEntries)[0]
+        .Trim()
+        .ToLowerInvariant();
+
+        if (string.IsNullOrWhiteSpace(normalizedContentType))
         {
-            throw new ArgumentException("Unsupported recording format.",
-                nameof(request));
+            throw new ArgumentException(
+                "Recording content type is required.",
+                nameof(recording));
+        }
+
+        if (!AllowedContentTypes.Contains(normalizedContentType))
+        {
+            throw new ArgumentException(
+                "Unsupported recording format.",
+                nameof(recording));
         }
 
         var recordingsDirectory = Path.Combine(
@@ -100,12 +102,13 @@ public class RecordingService : IRecordingService
 
         Directory.CreateDirectory(recordingsDirectory);
 
-        var extension = request.Recording.ContentType
+        var extension = normalizedContentType
             .Equals("video/mp4", StringComparison.OrdinalIgnoreCase)
             ? ".mp4"
             : ".webm";
 
         var fileName = $"{Guid.NewGuid():N}{extension}";
+
         var physicalFilePath = Path.Combine(
             recordingsDirectory,
             fileName);
@@ -125,26 +128,27 @@ public class RecordingService : IRecordingService
                 FileShare.None,
                 bufferSize: 81920,
                 useAsync: true))
+
             {
-                await request.Recording.CopyToAsync(fileStream);
+                await recording.CopyToAsync(fileStream);
             }
 
-            var recording = new Recording
+            var recordingEntity = new Recording
             {
                 SessionId = sessionId.Trim(),
-                CandidateId = request.CandidateId.Trim(),
-                QuestionNumber = request.QuestionNumber,
+                CandidateId = candidateId.Trim(),
+                QuestionNumber = questionNumber,
                 FileName = fileName,
                 FilePath = relativeFilePath,
-                ContentType = request.Recording.ContentType.Trim(),
-                FileSize = request.Recording.Length,
+                ContentType = normalizedContentType,
+                FileSize = recording.Length,
                 CreatedAt = DateTime.UtcNow
             };
 
             var createdRecording =
-                await _recordingRepository.CreateRecordingAsync(recording);
+                await _recordingRepository.CreateRecordingAsync(recordingEntity);
 
-            return MapToResponse(createdRecording);
+            return createdRecording;
         }
         catch
         {
@@ -160,7 +164,7 @@ public class RecordingService : IRecordingService
     /// <summary>
     /// Retrieves all recordings associated with an interview session.
     /// </summary>
-    public async Task<List<RecordingResponse>> GetRecordingsBySessionIdAsync(
+    public async Task<List<Recording>> GetRecordingsBySessionIdAsync(
         string sessionId)
     {
         if (string.IsNullOrWhiteSpace(sessionId))
@@ -172,9 +176,7 @@ public class RecordingService : IRecordingService
             await _recordingRepository.GetRecordingsBySessionIdAsync(
                 sessionId.Trim());
 
-        return recordings
-            .Select(MapToResponse)
-            .ToList();
+        return recordings;
     }
 
     /// <summary>
@@ -290,31 +292,12 @@ public class RecordingService : IRecordingService
             ? recordingsRoot : recordingsRoot + Path.DirectorySeparatorChar;
 
         if (!fullPath.StartsWith(
-                recordingsRoot,
+                recordingsRootWithSeperator,
                 StringComparison.OrdinalIgnoreCase))
         {
             throw new InvalidOperationException("Invalid recording file path.");
         }
 
         return fullPath;
-    }
-
-    private static RecordingResponse MapToResponse(
-        Recording recording)
-    {
-        ArgumentNullException.ThrowIfNull(recording);
-
-        return new RecordingResponse
-        {
-            Id = recording.Id,
-            SessionId = recording.SessionId,
-            CandidateId = recording.CandidateId,
-            QuestionNumber = recording.QuestionNumber,
-            FileName = recording.FileName,
-            FilePath = recording.FilePath,
-            ContentType = recording.ContentType,
-            FileSize = recording.FileSize,
-            CreatedAt = recording.CreatedAt
-        };
     }
 }

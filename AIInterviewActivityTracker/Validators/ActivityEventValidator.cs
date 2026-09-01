@@ -1,14 +1,14 @@
-﻿using AIInterviewActivityTracker.DTOs.ActivityEvent;
+﻿using AIInterviewActivityTracker.Models;
 using FluentValidation;
 
 namespace AIInterviewActivityTracker.Validators
 {
     /// <summary>
-    /// Validates activity event requests.
+    /// Validates activity events.
     /// </summary>
-    public class CreateActivityEventRequestValidator : AbstractValidator<CreateActivityEventRequest>
+    public class ActivityEventValidator : AbstractValidator<ActivityEvent>
     {
-        public CreateActivityEventRequestValidator()
+        public ActivityEventValidator()
         {
             RuleFor(x => x.SessionId).NotEmpty().MaximumLength(100);
 

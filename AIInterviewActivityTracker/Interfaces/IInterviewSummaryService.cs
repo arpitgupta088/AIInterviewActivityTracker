@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs.InterviewSummary;
-using AIInterviewActivityTracker.Models;
+﻿using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Interfaces
 {
@@ -11,13 +10,13 @@ namespace AIInterviewActivityTracker.Interfaces
         /// <summary>
         /// Creates and persists a generated interview summary.
         /// </summary>
-        Task<InterviewSummaryResponse> CreateSummaryAsync(
+        Task<InterviewSummary> CreateSummaryAsync(
             InterviewSummary summary);
 
         /// <summary>
         /// Retrieves an interview summary by SessionId.
         /// </summary>
-        Task<InterviewSummaryResponse?> GetSummaryBySessionIdAsync(
+        Task<InterviewSummary?> GetSummaryBySessionIdAsync(
             string sessionId);
 
         /// <summary>

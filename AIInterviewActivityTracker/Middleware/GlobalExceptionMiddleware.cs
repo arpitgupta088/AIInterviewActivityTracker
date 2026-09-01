@@ -1,6 +1,6 @@
 ﻿using System.Net;
 using System.Text.Json;
-using AIInterviewActivityTracker.DTOs;
+using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Middleware
 {
@@ -58,7 +58,7 @@ namespace AIInterviewActivityTracker.Middleware
 
             context.Response.StatusCode = (int)statusCode;
 
-            var response = ApiResponseDto<string>.CreateFailure(
+            var response = ApiResponse<string>.CreateFailure(
                 statusCode == HttpStatusCode.InternalServerError
                     ? "An unexpected error occurred. Please try again later."
                     : exception.Message);

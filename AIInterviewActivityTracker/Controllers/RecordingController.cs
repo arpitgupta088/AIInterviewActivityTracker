@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs;
-using AIInterviewActivityTracker.DTOs.Recording;
+﻿using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -23,24 +22,22 @@ namespace AIInterviewActivityTracker.Controllers
         /// <summary>
         /// Uploads a recording associated with an interview session.
         /// </summary>
-        [HttpPost("upload")]
+        [HttpPost("upload/{sessionId}")]
         [Consumes("multipart/form-data")]
         public async Task<IActionResult> UploadRecording(
-            [FromForm] UploadRecordingRequest request)
+            string sessionId,
+            [FromQuery] string candidateId,
+            [FromQuery] int questionNumber,
+            IFormFile recording)
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
-                        "Invalid recording upload request."));
-            }
-
             var result = await _recordingService.UploadRecordingAsync(
-                request.SessionId,
-                request);
+                sessionId,
+                candidateId,
+                questionNumber,
+                recording);
 
-            return Ok(
-                ApiResponseDto<RecordingResponse>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<Recording>.CreateSuccess(
                     result,
                     "Recording uploaded successfully."));
         }
@@ -54,8 +51,8 @@ namespace AIInterviewActivityTracker.Controllers
             var recordings =
                 await _recordingService.GetRecordingsBySessionIdAsync(sessionId);
 
-            return Ok(
-                ApiResponseDto<List<RecordingResponse>>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<List<Recording>>.CreateSuccess(
                     recordings,
                     $"Retrieved {recordings.Count} recording(s)."));
         }
@@ -86,13 +83,13 @@ namespace AIInterviewActivityTracker.Controllers
 
             if (!deleted)
             {
-                return NotFound(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.NotFound(
+                    ApiResponse<string>.CreateFailure(
                         $"Recording '{recordingId}' was not found."));
             }
 
-            return Ok(
-                ApiResponseDto<bool>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<bool>.CreateSuccess(
                     true,
                     "Recording deleted successfully."));
         }

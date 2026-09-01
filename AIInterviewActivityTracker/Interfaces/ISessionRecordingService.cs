@@ -1,4 +1,4 @@
-using AIInterviewActivityTracker.DTOs.SessionRecording;
+using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Interfaces;
 
@@ -10,12 +10,17 @@ public interface ISessionRecordingService
     /// <summary>
     /// Uploads and persists the complete interview session recording.
     /// </summary>
-    Task<SessionRecordingResponse> UploadAsync(UploadSessionRecordingRequest request);
+    Task<SessionRecording> UploadAsync(
+        string sessionId,
+        string candidateId,
+        IFormFile recording,
+        DateTime startedAt,
+        DateTime? endedAt);
 
     /// <summary>
     /// Retrieves the complete recording associated with a session.
     /// </summary>
-    Task<SessionRecordingResponse?> GetBySessionIdAsync(string sessionId);
+    Task<SessionRecording?> GetBySessionIdAsync(string sessionId);
 
     /// <summary>
     /// Deletes a complete session recording.

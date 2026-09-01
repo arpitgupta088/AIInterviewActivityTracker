@@ -1,6 +1,6 @@
-﻿using AIInterviewActivityTracker.DTOs;
-using AIInterviewActivityTracker.DTOs.ActivityEvent;
+﻿using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
+using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
 using System.Text.Json;
 
@@ -14,29 +14,33 @@ namespace AIInterviewActivityTracker.Controllers
     public class ActivityEventController : ControllerBase
     {
         private readonly IActivityEventService _eventService;
+        private readonly IValidator<ActivityEvent> _activityEventValidator;
 
-        public ActivityEventController(IActivityEventService eventService)
+        public ActivityEventController(IActivityEventService eventService, IValidator<ActivityEvent> activityEventValidator)
         {
             ArgumentNullException.ThrowIfNull(eventService);
+            ArgumentNullException.ThrowIfNull(activityEventValidator);
+
             _eventService = eventService;
+            _activityEventValidator = activityEventValidator;
         }
 
         /// <summary>
         /// Logs a single activity event.
         /// </summary>
         [HttpPost]
-        public async Task<IActionResult> LogEvent([FromBody] CreateActivityEventRequest request)
+        public async Task<IActionResult> LogEvent([FromBody] ActivityEvent activityEvent)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure("Invalid request payload."));
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure("Invalid request payload."));
             }
 
-            await _eventService.LogEventAsync(request);
+            await _eventService.LogEventAsync(activityEvent);
 
-            return Ok(
-                ApiResponseDto<string>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<string>.CreateSuccess(
                     "Event logged successfully.",
                     "Event recorded."));
         }
@@ -45,18 +49,18 @@ namespace AIInterviewActivityTracker.Controllers
         /// Logs multiple activity events in a single request.
         /// </summary>
         [HttpPost("batch")]
-        public async Task<IActionResult> LogBatchEvents([FromBody] IEnumerable<CreateActivityEventRequest> requests)
+        public async Task<IActionResult> LogBatchEvents([FromBody] IEnumerable<ActivityEvent> activityEvents)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure("Invalid request payload."));
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure("Invalid request payload."));
             }
 
-            await _eventService.LogBatchEventsAsync(requests);
+            await _eventService.LogBatchEventsAsync(activityEvents);
 
-            return Ok(
-                ApiResponseDto<string>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<string>.CreateSuccess(
                     "Batch events logged successfully.",
                     "Batch events recorded."));
         }
@@ -69,8 +73,8 @@ namespace AIInterviewActivityTracker.Controllers
         {
             var events = await _eventService.GetEventsBySessionIdAsync(sessionId);
 
-            return Ok(
-                ApiResponseDto<List<ActivityEventResponse>>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<List<ActivityEvent>>.CreateSuccess(
                     events,
                     $"Retrieved {events.Count} event(s)."));
         }
@@ -80,19 +84,19 @@ namespace AIInterviewActivityTracker.Controllers
         /// </summary>
         [HttpPost("beacon")]
         public async Task<IActionResult> LogBeaconEvent(
-            [FromForm] CreateActivityEventRequest request)
+            [FromForm] ActivityEvent activityEvent)
         {
             if (!ModelState.IsValid)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "Invalid beacon payload."));
             }
 
-            await _eventService.LogEventAsync(request);
+            await _eventService.LogEventAsync(activityEvent);
 
-            return Ok(
-                ApiResponseDto<string>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<string>.CreateSuccess(
                     "Beacon event logged successfully.",
                     "Beacon event recorded."));
         }
@@ -109,38 +113,39 @@ namespace AIInterviewActivityTracker.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
+
+            var validPage = page > 0
+                    ? page
+                    : 1;
+
+            var validPageSize =
+                pageSize > 0 && pageSize <= 100
+                    ? pageSize
+                    : 20;
+
             var (events, totalCount) =
                 await _eventService.GetFilteredEventsAsync(
                     sessionId,
                     eventType,
                     startDate,
                     endDate,
-                    page,
-                    pageSize);
+                    validPage,
+                    validPageSize);
 
             var response = new
             {
                 TotalCount = totalCount,
-                Page = page,
-                PageSize = pageSize,
+                Page = validPage,
+                PageSize = validPageSize,
                 Events = events
             };
 
-            return Ok(
-                ApiResponseDto<object>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<object>.CreateSuccess(
                     response,
                     "Filtered events retrieved successfully."));
         }
 
-        /// <summary>
-        /// Logs multiple activity events received through the browser Beacon API.
-        /// 
-        /// Input:
-        /// - events: JSON string containing an array of activity event requests.
-        /// 
-        /// Output:
-        /// - Returns a success response after the events are queued for persistence.
-        /// </summary>
         /// <summary>
         /// Logs multiple activity events received through the browser Beacon API.
         ///
@@ -156,17 +161,17 @@ namespace AIInterviewActivityTracker.Controllers
         {
             if (string.IsNullOrWhiteSpace(events))
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "Beacon events payload is required."));
             }
 
-            List<CreateActivityEventRequest>? requests;
+            List<ActivityEvent>? activityEvents;
 
             try
             {
-                requests = JsonSerializer.Deserialize<
-                    List<CreateActivityEventRequest>
+                activityEvents = JsonSerializer.Deserialize<
+                    List<ActivityEvent>
                 >(
                     events,
                     new JsonSerializerOptions
@@ -174,42 +179,43 @@ namespace AIInterviewActivityTracker.Controllers
                         PropertyNameCaseInsensitive = true
                     });
             }
-            catch (JsonException ex)
+            catch (JsonException)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "Invalid beacon events payload."));
             }
 
-            if (requests == null || requests.Count == 0)
+            if (activityEvents == null || activityEvents.Count == 0)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "Beacon events payload is empty."));
             }
 
-            var validRequests = requests
-                .Where(request =>
-                    request != null &&
-                    !string.IsNullOrWhiteSpace(request.SessionId) &&
-                    !string.IsNullOrWhiteSpace(request.CandidateId) &&
-                    !string.IsNullOrWhiteSpace(request.EventType) &&
-                    !string.IsNullOrWhiteSpace(request.Module))
-                .ToList();
-
-            if (validRequests.Count == 0)
+            foreach (var activityEvent in activityEvents)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
-                        "Beacon payload did not contain valid activity events."));
+                var validationResult = await _activityEventValidator.ValidateAsync(activityEvent);
+
+                if (!validationResult.IsValid)
+                {
+                    var validationErrors = string.Join(
+                        " ",
+                        validationResult.Errors.Select(
+                            error => error.ErrorMessage));
+
+                    return base.BadRequest(
+                        ApiResponse<string>.CreateFailure(
+                            validationErrors));
+                }
             }
 
-            await _eventService.LogBatchEventsAsync(validRequests);
+            await _eventService.LogBatchEventsAsync(activityEvents);
 
-            return Ok(
-                 ApiResponseDto<int>.CreateSuccess(
-                     validRequests.Count,
-                        "Beacon batch events logged successfully."));
+            return base.Ok(
+                ApiResponse<int>.CreateSuccess(
+                    activityEvents.Count,
+                    "Beacon batch events logged successfully."));
         }
     }
 }

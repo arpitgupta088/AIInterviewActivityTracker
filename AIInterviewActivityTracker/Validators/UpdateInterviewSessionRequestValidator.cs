@@ -1,4 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs.InterviewSession;
+﻿using AIInterviewActivityTracker.Models;
 using FluentValidation;
 
 namespace AIInterviewActivityTracker.Validators

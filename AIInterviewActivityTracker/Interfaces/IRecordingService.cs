@@ -1,4 +1,5 @@
-using AIInterviewActivityTracker.DTOs.Recording;
+using AIInterviewActivityTracker.Models;
+using Microsoft.AspNetCore.Http;
 
 namespace AIInterviewActivityTracker.Interfaces;
 
@@ -10,14 +11,16 @@ public interface IRecordingService
     /// <summary>
     /// Uploads and persists a recording for an interview session.
     /// </summary>
-    Task<RecordingResponse> UploadRecordingAsync(
+    Task<Recording> UploadRecordingAsync(
         string sessionId,
-        UploadRecordingRequest request);
+        string candidateId,
+        int questionNumber,
+        IFormFile recording);
 
     /// <summary>
     /// Retrieves all recordings associated with a session.
     /// </summary>
-    Task<List<RecordingResponse>> GetRecordingsBySessionIdAsync(
+    Task<List<Recording>> GetRecordingsBySessionIdAsync(
         string sessionId);
 
     /// <summary>

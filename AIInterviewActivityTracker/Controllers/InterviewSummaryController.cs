@@ -1,5 +1,4 @@
-using AIInterviewActivityTracker.DTOs;
-using AIInterviewActivityTracker.DTOs.InterviewSummary;
+using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
 using Microsoft.AspNetCore.Mvc;
 
@@ -35,8 +34,8 @@ namespace AIInterviewActivityTracker.Controllers
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "SessionId is required."));
             }
 
@@ -45,13 +44,13 @@ namespace AIInterviewActivityTracker.Controllers
 
             if (result == null)
             {
-                return NotFound(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.NotFound(
+                    ApiResponse<string>.CreateFailure(
                         $"Summary for session '{sessionId}' was not found."));
             }
 
-            return Ok(
-                ApiResponseDto<InterviewSummaryResponse>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<InterviewSummary>.CreateSuccess(
                     result,
                     "Interview summary retrieved successfully."));
         }
@@ -65,8 +64,8 @@ namespace AIInterviewActivityTracker.Controllers
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "SessionId is required."));
             }
 
@@ -75,16 +74,16 @@ namespace AIInterviewActivityTracker.Controllers
 
             if (summary == null)
             {
-                return BadRequest(
-                    ApiResponseDto<string>.CreateFailure(
+                return base.BadRequest(
+                    ApiResponse<string>.CreateFailure(
                         "Summary could not be generated."));
             }
 
             var response =
                 await _summaryService.GetSummaryBySessionIdAsync(sessionId);
 
-            return Ok(
-                ApiResponseDto<InterviewSummaryResponse>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<InterviewSummary>.CreateSuccess(
                     response!,
                     "Interview summary generated successfully."));
         }
@@ -98,8 +97,8 @@ namespace AIInterviewActivityTracker.Controllers
             var count =
                 await _summaryService.GetTotalSummaryCountAsync();
 
-            return Ok(
-                ApiResponseDto<long>.CreateSuccess(
+            return base.Ok(
+                ApiResponse<long>.CreateSuccess(
                     count,
                     "Interview summary count retrieved successfully."));
         }

@@ -1,4 +1,3 @@
-using AIInterviewActivityTracker.DTOs.InterviewSession;
 using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Constants;
@@ -23,80 +22,108 @@ namespace AIInterviewActivityTracker.Services
         /// Creates and persists a new interview tracking session.
         ///
         /// Input:
-        /// request - Session creation data containing SessionId, CandidateId,
-        /// and InterviewId.
+        /// - sessionId: Unique interview session identifier.
+        /// - candidateId: Candidate identifier.
+        /// - interviewId: Interview identifier.
         ///
         /// Output:
-        /// Returns the created interview session response.
+        /// Returns the created interview session.
         /// </summary>
-        public async Task<InterviewSessionResponse> CreateSessionAsync(CreateInterviewSessionRequest request)
+        public async Task<InterviewSession> CreateSessionAsync(string sessionId, string candidateId, string interviewId)
         {
-            ArgumentNullException.ThrowIfNull(request);
+            if (string.IsNullOrWhiteSpace(sessionId))
+            {
+                throw new ArgumentException(
+                    "Session ID cannot be null or whitespace.",
+                    nameof(sessionId));
+            }
+
+            if (string.IsNullOrWhiteSpace(candidateId))
+            {
+                throw new ArgumentException(
+                    "Candidate ID cannot be null or whitespace.",
+                    nameof(candidateId));
+            }
+
+            if (string.IsNullOrWhiteSpace(interviewId))
+            {
+                throw new ArgumentException(
+                    "Interview ID cannot be null or whitespace.",
+                    nameof(interviewId));
+            }
 
             var sessionModel = new InterviewSession
             {
-                SessionId = request.SessionId.Trim(),
-                CandidateId = request.CandidateId.Trim(),
-                InterviewId = request.InterviewId.Trim(),
+                SessionId = sessionId.Trim(),
+                CandidateId = candidateId.Trim(),
+                InterviewId = interviewId.Trim(),
                 StartTime = DateTime.UtcNow,
                 Status = SystemConstants.SessionStatus.InProgress,
                 CreatedAt = DateTime.UtcNow
             };
 
-            var createdSession = await _sessionRepository.CreateSessionAsync(sessionModel);
+            var createdSession =
+                await _sessionRepository.CreateSessionAsync(sessionModel);
 
             if (createdSession == null)
             {
-                throw new InvalidOperationException("Failed to persist the interview session in MongoDB.");
+                throw new InvalidOperationException(
+                    "Failed to persist the interview session in MongoDB.");
             }
 
-            return MapToResponse(createdSession);
+            return createdSession;
         }
 
         /// <summary>
         /// Retrieves an interview session by its unique SessionId.
         ///
         /// Input:
-        /// sessionId - Unique identifier of the interview session.
+        /// - sessionId: Unique interview session identifier.
         ///
         /// Output:
-        /// Returns the matching session response, or null when the session
-        /// does not exist.
+        /// - Returns the matching interview session or null when not found.
         /// </summary>
-        public async Task<InterviewSessionResponse?> GetSessionByIdAsync(string sessionId)
+        public async Task<InterviewSession?> GetSessionByIdAsync(
+            string sessionId)
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
                 return null;
             }
 
-            var session = await _sessionRepository.GetSessionByIdAsync(sessionId.Trim());
-
-            if (session == null)
-            {
-                return null;
-            }
-
-            return MapToResponse(session);
+            return await _sessionRepository.GetSessionByIdAsync(
+                sessionId.Trim());
         }
 
         /// <summary>
         /// Updates the lifecycle status of an interview session.
         ///
         /// Input:
-        /// request - Session update request containing SessionId and new status.
+        /// - sessionId: Unique interview session identifier.
+        /// - status: New lifecycle status.
         ///
         /// Output:
-        /// Returns true when the repository successfully updates the session;
-        /// otherwise returns false.
+        /// Returns true when the repository successfully updates the session.
         /// </summary>
-        public async Task<bool> UpdateSessionStatusAsync(UpdateInterviewSessionRequest request)
+        public async Task<bool> UpdateSessionStatusAsync(string sessionId, string status)
         {
-            ArgumentNullException.ThrowIfNull(request);
+            if (string.IsNullOrWhiteSpace(sessionId))
+            {
+                throw new ArgumentException(
+                    "Session ID cannot be null or whitespace.",
+                    nameof(sessionId));
+            }
+
+            if (string.IsNullOrWhiteSpace(status))
+            {
+                throw new ArgumentException(
+                    "Status cannot be null or whitespace.",
+                    nameof(status));
+            }
 
             return await _sessionRepository.UpdateSessionStatusAsync(
-                request.SessionId.Trim(),
-                request.Status.Trim());
+                sessionId.Trim(),
+                status.Trim());
         }
 
         /// <summary>
@@ -123,26 +150,23 @@ namespace AIInterviewActivityTracker.Services
                 status.Trim());
         }
 
-        private static InterviewSessionResponse MapToResponse(InterviewSession model)
-        {
-            return new InterviewSessionResponse
-            {
-                Id = model.Id ?? string.Empty,
-                SessionId = model.SessionId,
-                CandidateId = model.CandidateId,
-                InterviewId = model.InterviewId,
-                StartTime = model.StartTime,
-                EndTime = model.EndTime,
-                Status = model.Status,
-                CreatedAt = model.CreatedAt
-            };
-        }
-
         /// <summary>
         /// Retrieves interview sessions using server-side pagination.
+        ///
+        /// Input:
+        /// - page: Page number to retrieve.
+        /// - pageSize: Maximum number of sessions per page.
+        ///
+        /// Output:
+        /// - Returns interview sessions for the requested page along with
+        ///   the total number of available sessions.
         /// </summary>
-        public async Task<(IEnumerable<InterviewSessionResponse> Sessions, long TotalCount
-        )> GetAllSessionsAsync(int page, int pageSize)
+        public async Task<(
+            IEnumerable<InterviewSession> Sessions,
+            long TotalCount
+        )> GetAllSessionsAsync(
+            int page,
+            int pageSize)
         {
             if (page < 1)
             {
@@ -154,26 +178,9 @@ namespace AIInterviewActivityTracker.Services
                 pageSize = 10;
             }
 
-            var (sessions, totalCount) =
-                await _sessionRepository.GetInterviewSessionsAsync(
-                    page,
-                    pageSize);
-
-            var sessionResponses = sessions.Select(session =>
-                new InterviewSessionResponse
-                {
-                    SessionId = session.SessionId,
-                    CandidateId = session.CandidateId,
-                    InterviewId = session.InterviewId,
-                    Status = session.Status,
-                    StartTime = session.StartTime,
-                    EndTime = session.EndTime
-                });
-
-            return (
-                sessionResponses,
-                totalCount
-            );
+            return await _sessionRepository.GetInterviewSessionsAsync(
+                page,
+                pageSize);
         }
     }
 }

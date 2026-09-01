@@ -16,7 +16,6 @@
   <ItemGroup>
     <None Include="wwwroot\Client\apiClient.js" />
     <None Include="wwwroot\Client\beaconTracker.js" />
-    <None Include="wwwroot\Client\eventQueue.js" />
     <None Include="wwwroot\Client\index.html" />
     <None Include="wwwroot\Client\tracker.js" />
   </ItemGroup>

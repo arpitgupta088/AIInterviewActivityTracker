@@ -1,4 +1,4 @@
-﻿using AIInterviewActivityTracker.Database;
+﻿using AIInterviewActivityTracker.Repositories;
 using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 using MongoDB.Driver;

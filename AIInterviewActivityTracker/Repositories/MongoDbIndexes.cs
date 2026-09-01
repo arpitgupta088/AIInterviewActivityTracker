@@ -3,7 +3,7 @@ using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 
-namespace AIInterviewActivityTracker.Database
+namespace AIInterviewActivityTracker.Repositories
 {
     /// <summary>
     /// Creates required MongoDB indexes during application startup.

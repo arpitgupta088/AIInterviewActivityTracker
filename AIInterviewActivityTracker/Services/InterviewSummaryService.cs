@@ -1,5 +1,4 @@
-﻿using AIInterviewActivityTracker.DTOs.InterviewSummary;
-using AIInterviewActivityTracker.Interfaces;
+﻿using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Services
@@ -25,14 +24,13 @@ namespace AIInterviewActivityTracker.Services
         /// summary - Interview summary model containing aggregated session data.
         ///
         /// Output:
-        /// Returns the persisted interview summary response.
+        /// Returns the persisted interview summary model.
         /// </summary>
-        public async Task<InterviewSummaryResponse> CreateSummaryAsync(InterviewSummary summary)
+        public async Task<InterviewSummary> CreateSummaryAsync(InterviewSummary summary)
         {
             ArgumentNullException.ThrowIfNull(summary);
 
-            var createdSummary = await _summaryRepository.CreateSummaryAsync(summary);
-            return MapToResponse(createdSummary);
+            return await _summaryRepository.CreateSummaryAsync(summary);
         }
 
         /// <summary>
@@ -42,9 +40,9 @@ namespace AIInterviewActivityTracker.Services
         /// sessionId - Unique identifier of the interview session.
         ///
         /// Output:
-        /// Returns the matching summary response, or null when no summary exists.
+        /// Returns the matching summary, or null when no summary exists.
         /// </summary>
-        public async Task<InterviewSummaryResponse?> GetSummaryBySessionIdAsync(string sessionId)
+        public async Task<InterviewSummary?> GetSummaryBySessionIdAsync(string sessionId)
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
@@ -52,15 +50,9 @@ namespace AIInterviewActivityTracker.Services
             }
 
             // Sanitize input to prevent query misses due to leading or trailing whitespace
-            var summary = await _summaryRepository.GetSummaryBySessionIdAsync(
+            return await _summaryRepository.GetSummaryBySessionIdAsync(
                 sessionId.Trim());
 
-            if (summary == null)
-            {
-                return null;
-            }
-
-            return MapToResponse(summary);
         }
 
         /// <summary>
@@ -111,24 +103,6 @@ namespace AIInterviewActivityTracker.Services
         public async Task<long> GetTotalSummaryCountAsync()
         {
             return await _summaryRepository.GetTotalSummaryCountAsync();
-        }
-
-        /// <summary>
-        /// Maps the database model to the client-facing DTO.
-        /// </summary>
-        private static InterviewSummaryResponse MapToResponse(InterviewSummary model)
-        {
-            return new InterviewSummaryResponse
-            {
-                Id = model.Id ?? string.Empty,
-                SessionId = model.SessionId,
-                CandidateId = model.CandidateId,
-                TotalEventsCount = model.TotalEventsCount,
-                ErrorEventsCount = model.ErrorEventsCount,
-                IsAbortedByCandidate = model.IsAbortedByCandidate,
-                LastActiveTimestamp = model.LastActiveTimestamp,
-                SummaryNotes = model.SummaryNotes
-            };
         }
     }
 }

@@ -1,4 +1,3 @@
-using AIInterviewActivityTracker.DTOs.ActivityEvent;
 using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Models;
 
@@ -28,20 +27,49 @@ namespace AIInterviewActivityTracker.Services
         /// Output:
         /// No return value. The event is persisted through the activity repository.
         /// </summary>
-        public async Task LogEventAsync(CreateActivityEventRequest request)
+        public async Task LogEventAsync(ActivityEvent activityEvent)
         {
-            ArgumentNullException.ThrowIfNull(request);
+            ArgumentNullException.ThrowIfNull(activityEvent);
+
+            if (string.IsNullOrWhiteSpace(activityEvent.SessionId))
+            {
+                throw new ArgumentException(
+                    "Session ID cannot be null or whitespace.",
+                    nameof(activityEvent.SessionId));
+            }
+
+            if (string.IsNullOrWhiteSpace(activityEvent.CandidateId))
+            {
+                throw new ArgumentException(
+                    "Candidate ID cannot be null or whitespace.",
+                    nameof(activityEvent.CandidateId));
+            }
+
+            if (string.IsNullOrWhiteSpace(activityEvent.EventType))
+            {
+                throw new ArgumentException(
+                    "Event type cannot be null or whitespace.",
+                    nameof(activityEvent.EventType));
+            }
+
+            if (string.IsNullOrWhiteSpace(activityEvent.Module))
+            {
+                throw new ArgumentException(
+                    "Module cannot be null or whitespace.",
+                    nameof(activityEvent.Module));
+            }
 
             var eventModel = new ActivityEvent
             {
-                SessionId = request.SessionId.Trim(),
-                CandidateId = request.CandidateId.Trim(),
-                EventType = request.EventType.Trim(),
-                Module = request.Module?.Trim() ?? string.Empty,
-                MetadataJson = string.IsNullOrWhiteSpace(request.MetadataJson)
+                SessionId = activityEvent.SessionId.Trim(),
+                CandidateId = activityEvent.CandidateId.Trim(),
+                EventType = activityEvent.EventType.Trim(),
+                Module = activityEvent.Module?.Trim() ?? string.Empty,
+                MetadataJson = string.IsNullOrWhiteSpace(activityEvent.MetadataJson)
                     ? "{}"
-                    : request.MetadataJson.Trim(),
+                    : activityEvent.MetadataJson.Trim(),
                 Timestamp = DateTime.UtcNow,
+                SequenceNumber = activityEvent.SequenceNumber,
                 CreatedAt = DateTime.UtcNow
             };
 
@@ -57,32 +85,35 @@ namespace AIInterviewActivityTracker.Services
         /// Output:
         /// No return value. Valid events are persisted through the repository.
         /// </summary>
-        public async Task LogBatchEventsAsync(IEnumerable<CreateActivityEventRequest> requests)
+        public async Task LogBatchEventsAsync(IEnumerable<ActivityEvent> activityEvents)
         {
-            ArgumentNullException.ThrowIfNull(requests);
+            ArgumentNullException.ThrowIfNull(activityEvents);
 
-            var requestList = requests.ToList();
+            var eventList = activityEvents.ToList();
 
-            if (requestList.Count == 0)
+            if (eventList.Count == 0)
             {
                 return;
             }
 
-            var eventModels = requestList
-                .Where(request =>
-                    request != null &&
-                    !string.IsNullOrWhiteSpace(request.SessionId) &&
-                    !string.IsNullOrWhiteSpace(request.EventType))
-                .Select(request => new ActivityEvent
+            var eventModels = eventList
+                .Where(activityEvent =>
+                    activityEvent != null &&
+                    !string.IsNullOrWhiteSpace(activityEvent.SessionId) &&
+                    !string.IsNullOrWhiteSpace(activityEvent.CandidateId) &&
+                    !string.IsNullOrWhiteSpace(activityEvent.EventType) &&
+                    !string.IsNullOrWhiteSpace(activityEvent.Module))
+                .Select(activityEvent => new ActivityEvent
                 {
-                    SessionId = request.SessionId.Trim(),
-                    CandidateId = request.CandidateId?.Trim() ?? string.Empty,
-                    EventType = request.EventType.Trim(),
-                    Module = request.Module?.Trim() ?? string.Empty,
-                    MetadataJson = string.IsNullOrWhiteSpace(request.MetadataJson)
+                    SessionId = activityEvent.SessionId.Trim(),
+                    CandidateId = activityEvent.CandidateId.Trim(),
+                    EventType = activityEvent.EventType.Trim(),
+                    Module = activityEvent.Module?.Trim() ?? string.Empty,
+                    MetadataJson = string.IsNullOrWhiteSpace(activityEvent.MetadataJson)
                         ? "{}"
-                        : request.MetadataJson.Trim(),
+                        : activityEvent.MetadataJson.Trim(),
                     Timestamp = DateTime.UtcNow,
+                    SequenceNumber = activityEvent.SequenceNumber,
                     CreatedAt = DateTime.UtcNow
                 })
                 .ToList();
@@ -102,26 +133,22 @@ namespace AIInterviewActivityTracker.Services
         /// sessionId - Unique identifier of the interview session.
         ///
         /// Output:
-        /// Returns a list of activity event response DTOs.
+        /// Returns a list of activity events.
         /// </summary>
-        public async Task<List<ActivityEventResponse>> GetEventsBySessionIdAsync(string sessionId)
+        public async Task<List<ActivityEvent>> GetEventsBySessionIdAsync(string sessionId)
         {
             if (string.IsNullOrWhiteSpace(sessionId))
             {
-                return new List<ActivityEventResponse>();
+                return new List<ActivityEvent>();
             }
 
-            var events = await _eventRepository.GetEventsBySessionIdAsync(sessionId.Trim());
-
-            return events
-                .Select(MapToResponse)
-                .ToList();
+            return await _eventRepository.GetEventsBySessionIdAsync(sessionId.Trim());
         }
 
         /// <summary>
         /// Retrieves the most recent activity events for dashboard display.
         /// </summary>
-        public async Task<List<ActivityEventResponse>> GetRecentEventsAsync(
+        public async Task<List<ActivityEvent>> GetRecentEventsAsync(
             int limit)
         {
             if (limit <= 0)
@@ -130,11 +157,7 @@ namespace AIInterviewActivityTracker.Services
                     "Limit must be greater than zero.");
             }
 
-            var events = await _eventRepository.GetRecentEventsAsync(limit);
-
-            return events
-                .Select(MapToResponse)
-                .ToList();
+            return await _eventRepository.GetRecentEventsAsync(limit);
         }
 
         /// <summary>
@@ -148,7 +171,7 @@ namespace AIInterviewActivityTracker.Services
         /// <summary>
         /// Retrieves filtered activity events with pagination.
         /// </summary>
-        public async Task<(List<ActivityEventResponse> Events, long TotalCount)> GetFilteredEventsAsync(
+        public async Task<(List<ActivityEvent> Events, long TotalCount)> GetFilteredEventsAsync(
             string? sessionId,
             string? eventType,
             DateTime? startDate,
@@ -165,35 +188,13 @@ namespace AIInterviewActivityTracker.Services
                     ? pageSize
                     : 20;
 
-            var (events, totalCount) =
-                await _eventRepository.GetFilteredEventsAsync(
-                    sessionId,
-                    eventType,
-                    startDate,
-                    endDate,
-                    validPage,
-                    validPageSize);
-
-            return (
-                events.Select(MapToResponse).ToList(),
-                totalCount);
-        }
-
-        /// <summary>
-        /// Maps an ActivityEvent model to the ActivityEventResponse DTO.
-        /// </summary>
-        private static ActivityEventResponse MapToResponse(ActivityEvent model)
-        {
-            return new ActivityEventResponse
-            {
-                Id = model.Id ?? string.Empty,
-                SessionId = model.SessionId,
-                CandidateId = model.CandidateId,
-                EventType = model.EventType,
-                Module = model.Module,
-                Timestamp = model.Timestamp,
-                MetadataJson = model.MetadataJson
-            };
+            return await _eventRepository.GetFilteredEventsAsync(
+                sessionId,
+                eventType,
+                startDate,
+                endDate,
+                validPage,
+                validPageSize);
+            } 
         }
     }
-}

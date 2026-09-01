@@ -1,4 +1,4 @@
-using AIInterviewActivityTracker.DTOs.InterviewSession;
+using AIInterviewActivityTracker.Models;
 
 namespace AIInterviewActivityTracker.Interfaces
 {
@@ -9,21 +9,31 @@ namespace AIInterviewActivityTracker.Interfaces
     {
         /// <summary>
         /// Creates a new interview tracking session.
+        ///
+        /// Input:
+        /// - sessionId: Unique interview session identifier.
+        /// - candidateId: Candidate identifier.
+        /// - interviewId: Interview identifier.
+        ///
+        /// Output:
+        /// - Returns the created interview session.
         /// </summary>
-        Task<InterviewSessionResponse> CreateSessionAsync(
-            CreateInterviewSessionRequest request);
+        Task<InterviewSession> CreateSessionAsync(
+           string sessionId,
+           string candidateId,
+           string interviewId);
 
         /// <summary>
         /// Retrieves an interview session by its unique SessionId.
         /// </summary>
-        Task<InterviewSessionResponse?> GetSessionByIdAsync(
+        Task<InterviewSession?> GetSessionByIdAsync(
             string sessionId);
 
         /// <summary>
         /// Updates the lifecycle status of an interview session.
         /// </summary>
         Task<bool> UpdateSessionStatusAsync(
-            UpdateInterviewSessionRequest request);
+            string sessionId, string status);
 
         /// <summary>
         /// Returns the total number of interview sessions.
@@ -45,11 +55,11 @@ namespace AIInterviewActivityTracker.Interfaces
         ///
         /// Output:
         /// - Returns a tuple containing:
-        ///   - Sessions: The interview session responses for the requested page.
+        ///   - Sessions: The interview sessions for the requested page.
         ///   - TotalCount: The total number of interview sessions available
         ///     before pagination is applied.
         /// </summary>
-        Task<(IEnumerable<InterviewSessionResponse> Sessions, long TotalCount)> 
+        Task<(IEnumerable<InterviewSession> Sessions, long TotalCount)> 
             GetAllSessionsAsync(int page, int pageSize);
     }
 }

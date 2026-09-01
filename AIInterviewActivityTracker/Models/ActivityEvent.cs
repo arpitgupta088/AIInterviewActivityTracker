@@ -34,6 +34,9 @@ namespace AIInterviewActivityTracker.Models
         [BsonElement("timestamp")]
         public DateTime Timestamp { get; set; } = DateTime.UtcNow;
 
+        [BsonElement("sequenceNumber")]
+        public long SequenceNumber { get; set; }
+
         [BsonElement("metadataJson")]
         public string MetadataJson { get; set; } = "{}";
 
