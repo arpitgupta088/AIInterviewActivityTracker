@@ -4,7 +4,7 @@ A full-stack interview monitoring and activity tracking application built with *
 
 The system captures candidate activity during AI-based interviews, manages interview sessions, records question-level and complete session recordings, stores activity events in MongoDB, generates interview summaries, and provides a responsive dashboard for monitoring interview activity and session details.
 
-The project follows **Clean Architecture** principles with separation of Controllers, Services, Repositories, DTOs, Validators, Middleware, Background Services, and Database components.
+The project follows **Clean Architecture** principles with separation of Controllers, Services, Repositories, Models, Validators, Middleware, Background Services, and Database components.
 
 ---
 
@@ -21,6 +21,7 @@ The project follows **Clean Architecture** principles with separation of Control
 - [Frontend Routes](#frontend-routes)
 - [Activity Events Tracked](#activity-events-tracked)
 - [Recording System](#recording-system)
+- [Event Queue & Beacon Batching](#event-queue--beacon-batching)
 - [Background Processing](#background-processing)
 - [Validation & Exception Handling](#validation--exception-handling)
 - [Performance Optimizations](#performance-optimizations)
@@ -73,7 +74,7 @@ The AI Interview Activity Tracker consists of two main applications:
 | Lucide React | `^1.25.0` |
 | Browser MediaRecorder API | Question & session recording |
 | Browser MediaStream API | Camera, microphone & screen capture |
-| Beacon API | Reliable event delivery on page unload |
+| Beacon API | Reliable batched event delivery on page unload |
 
 ---
 
@@ -86,7 +87,9 @@ AIInterviewActivityTracker/                    ← Solution root
 │   ├── BackgroundServices/
 │   │   └── InterviewSummaryBackgroundService.cs
 │   ├── Configurations/
+│   │   └── MongoDbSettings.cs
 │   ├── Constants/
+│   │   └── SystemConstants.cs
 │   ├── Controllers/
 │   │   ├── ActivityEventController.cs
 │   │   ├── DashboardController.cs
@@ -94,27 +97,51 @@ AIInterviewActivityTracker/                    ← Solution root
 │   │   ├── InterviewSummaryController.cs
 │   │   ├── RecordingController.cs
 │   │   └── SessionRecordingController.cs
-│   ├── Database/
-│   ├── DTOs/
 │   ├── Interfaces/
+│   │   ├── IActivityEventRepository.cs
+│   │   ├── IActivityEventService.cs
+│   │   ├── IInterviewSessionRepository.cs
+│   │   ├── IInterviewSessionService.cs
+│   │   ├── IInterviewSummaryGenerator.cs
+│   │   ├── IInterviewSummaryRepository.cs
+│   │   ├── IInterviewSummaryService.cs
+│   │   ├── IRecordingRepository.cs
+│   │   ├── IRecordingService.cs
+│   │   ├── ISessionRecordingRepository.cs
+│   │   └── ISessionRecordingService.cs
 │   ├── Middleware/
+│   │   └── GlobalExceptionMiddleware.cs
 │   ├── Models/
 │   │   ├── ActivityEvent.cs
+│   │   ├── ApiResponse.cs
+│   │   ├── CreateInterviewSessionRequest.cs
+│   │   ├── DashboardStats.cs
 │   │   ├── InterviewSession.cs
 │   │   ├── InterviewSummary.cs
 │   │   ├── Recording.cs
-│   │   └── SessionRecording.cs
+│   │   ├── SessionRecording.cs
+│   │   └── UpdateInterviewSessionRequest.cs
 │   ├── Properties/
 │   ├── Repositories/
+│   │   ├── ActivityEventRepository.cs
+│   │   ├── InterviewSessionRepository.cs
+│   │   ├── InterviewSummaryRepository.cs
+│   │   ├── MongoDbContext.cs
+│   │   ├── MongoDbIndexes.cs
+│   │   ├── RecordingRepository.cs
+│   │   └── SessionRecordingRepository.cs
 │   ├── Services/
+│   │   ├── ActivityEventService.cs
+│   │   ├── InterviewSessionService.cs
+│   │   ├── InterviewSummaryGenerator.cs
+│   │   ├── InterviewSummaryService.cs
+│   │   ├── RecordingService.cs
+│   │   └── SessionRecordingService.cs
 │   ├── Validators/
+│   │   ├── ActivityEventValidator.cs
+│   │   ├── CreateInterviewSessionRequestValidator.cs
+│   │   └── UpdateInterviewSessionRequestValidator.cs
 │   ├── wwwroot/
-│   │   ├── Client/
-│   │   │   ├── apiClient.js
-│   │   │   ├── beaconTracker.js
-│   │   │   ├── eventQueue.js
-│   │   │   ├── index.html
-│   │   │   └── tracker.js
 │   │   └── uploads/
 │   │       └── session-recordings/
 │   ├── Program.cs
@@ -138,6 +165,8 @@ AIInterviewActivityTracker/                    ← Solution root
 │   │   │   │   ├── QuestionPlayer.jsx
 │   │   │   │   └── WebcamRecorder.jsx
 │   │   │   ├── layout/
+│   │   │   │   ├── Navbar.jsx
+│   │   │   │   └── Sidebar.jsx
 │   │   │   └── session/
 │   │   │       ├── InterviewSummaryCard.jsx
 │   │   │       ├── SessionEventTable.jsx
@@ -157,11 +186,15 @@ AIInterviewActivityTracker/                    ← Solution root
 │   │   │   ├── SessionDetails.jsx
 │   │   │   └── Sessions.jsx
 │   │   ├── services/
+│   │   │   ├── activityTracker.js
 │   │   │   ├── apiClient.js
 │   │   │   ├── dashboardService.js
+│   │   │   ├── eventQueue.js
 │   │   │   ├── interviewService.js
 │   │   │   └── recordingService.js
 │   │   ├── styles/
+│   │   │   ├── dashboard.css
+│   │   │   └── globals.css
 │   │   ├── App.jsx
 │   │   └── main.jsx
 │   ├── index.html
@@ -244,7 +277,7 @@ Interview Complete
   └── Log INTERVIEW_COMPLETED
 ```
 
-Throughout the interview, activity events are logged against the active `SessionId`, `CandidateId`, and `InterviewId`.
+Throughout the interview, activity events are queued and flushed to the backend against the active `SessionId`, `CandidateId`, and `InterviewId`.
 
 ---
 
@@ -254,10 +287,11 @@ Throughout the interview, activity events are logged against the active `Session
 
 - **Interview Session Management** — Create, retrieve, and update interview sessions
 - **Activity Event Tracking** — Single event logging, batch upload, and Beacon API support
+- **Beacon Batch Endpoint** — Accepts batched events as a JSON-encoded form field for reliable delivery on page unload
 - **Dashboard Statistics** — Total sessions, active sessions, total events
 - **Recent Activity Events** — Configurable event limit (no full history load)
 - **Session Activity Timeline** — Ordered event timeline per session
-- **Activity Search & Filtering** — Candidate ID / Session ID search, event type filter, date range, partial & case-insensitive matching
+- **Activity Search & Filtering** — Session ID search, event type filter, date range, server-side pagination
 - **Server-Side Pagination** — Configurable page size (default: 20), total count returned
 - **Question-Level Recording** — Upload, stream, and delete per-question recordings
 - **Complete Session Recording** — Screen + audio session recording upload, stream, and delete
@@ -268,9 +302,16 @@ Throughout the interview, activity events are logged against the active `Session
 - **Dependency Injection** — Scoped/singleton services; MongoDB client registered as Singleton
 - **MongoDB Indexing** — Session, event type, timestamp, compound, and TTL indexes
 - **Swagger / OpenAPI** — Full API documentation available in Development mode
-- **CORS Configuration** — Configured for frontend origin
+- **CORS Configuration** — Configured to allow all origins, methods, and headers
 
 ### Frontend Features
+
+#### Activity Tracking Services
+
+The frontend uses two dedicated services to reliably track and deliver events:
+
+- **`activityTracker.js`** — Singleton module that initialises the event queue per session, registers global error listeners (`error`, `unhandledrejection`), and flushes pending events via the Beacon API on page hide.
+- **`eventQueue.js`** — Manages a local event queue persisted in `localStorage`. Automatically flushes batches via the Beacon API when the batch size threshold (10 events) is reached.
 
 #### Interview Activity Tracking (`useInterviewActivityTracking.js`)
 
@@ -289,22 +330,23 @@ The hook tracks the following browser and interview events automatically:
 | Question | Video Completion, Video Playback Failure, Question Replay, Next Question, Question Completion |
 | Recording | Recording Start, Recording Stop, Recording Upload |
 | Session | Session Recording Upload |
+| Errors | Application Error, Unhandled Promise Rejection |
 
 #### React Dashboard
 
 - Dashboard statistics overview
 - Recent activity events panel
 - Activity distribution bar chart (Recharts)
-- Interview sessions list
+- Interview sessions list with server-side pagination
 - Session details with full timeline
 - Question recordings with in-browser playback
 - Complete session recording player
 - Recording deletion
 - Interview summary card
-- Activity search (Candidate ID / Session ID)
-- Event type filter
+- Activity search (Session ID / Event Type)
+- Event type filter and date range filter
 - Server-side pagination
-- Responsive layout
+- Responsive layout with sidebar navigation
 
 ---
 
@@ -343,10 +385,10 @@ The hook tracks the following browser and interview events automatically:
 |---|---|
 | `SessionId` | Associated session |
 | `CandidateId` | Associated candidate |
-| `TotalEvents` | Total event count |
-| `ErrorEvents` | Error event count |
+| `TotalEventsCount` | Total event count |
+| `ErrorEventsCount` | Suspicious/error event count |
+| `IsAbortedByCandidate` | Whether the candidate aborted the interview |
 | `LastActiveTimestamp` | Last recorded activity time |
-| `CandidateAborted` | Whether the candidate aborted |
 | `SummaryNotes` | Generated summary notes |
 | `CreatedAt` / `UpdatedAt` | Timestamps |
 
@@ -405,7 +447,7 @@ The hook tracks the following browser and interview events automatically:
 | Method | Endpoint | Description |
 |---|---|---|
 | `POST` | `/api/v1/sessions` | Create interview session |
-| `GET` | `/api/v1/sessions` | Get all sessions |
+| `GET` | `/api/v1/sessions` | Get all sessions (paginated) |
 | `GET` | `/api/v1/sessions/{sessionId}` | Get session by ID |
 | `PATCH` | `/api/v1/sessions/status` | Update session status |
 
@@ -416,7 +458,8 @@ The hook tracks the following browser and interview events automatically:
 | `POST` | `/api/v1/activities` | Log single activity event |
 | `POST` | `/api/v1/activities/batch` | Batch upload activity events |
 | `GET` | `/api/v1/activities/session/{sessionId}` | Get events by session |
-| `POST` | `/api/v1/activities/beacon` | Beacon API event endpoint |
+| `POST` | `/api/v1/activities/beacon` | Beacon API — single event (form-encoded) |
+| `POST` | `/api/v1/activities/beacon-batch` | Beacon API — batch events (JSON-encoded form field) |
 | `GET` | `/api/v1/activities/search` | Search / filter / paginate events |
 
 **Search query parameters:** `sessionId`, `eventType`, `startDate`, `endDate`, `page`, `pageSize`
@@ -441,7 +484,7 @@ The hook tracks the following browser and interview events automatically:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/v1/recordings/upload` | Upload question recording |
+| `POST` | `/api/v1/recordings/upload/{sessionId}` | Upload question recording |
 | `GET` | `/api/v1/recordings/session/{sessionId}` | Get session recordings |
 | `GET` | `/api/v1/recordings/{recordingId}/stream` | Stream recording |
 | `DELETE` | `/api/v1/recordings/{recordingId}` | Delete recording |
@@ -450,14 +493,14 @@ The hook tracks the following browser and interview events automatically:
 
 | Method | Endpoint | Description |
 |---|---|---|
-| `POST` | `/api/v1/session-recordings/upload` | Upload complete session recording |
+| `POST` | `/api/v1/session-recordings/upload/{sessionId}` | Upload complete session recording |
 | `GET` | `/api/v1/session-recordings/session/{sessionId}` | Get session recording |
 | `GET` | `/api/v1/session-recordings/{recordingId}/stream` | Stream session recording |
 | `DELETE` | `/api/v1/session-recordings/{recordingId}` | Delete session recording |
 
 ### API Response Structure
 
-All endpoints return a consistent response envelope via `ApiResponseDto<T>`:
+All endpoints return a consistent response envelope via `ApiResponse<T>`:
 
 ```json
 {
@@ -491,7 +534,7 @@ All endpoints return a consistent response envelope via `ApiResponseDto<T>`:
 
 - Each interview question has an individual candidate response recording.
 - The browser **MediaRecorder API** captures the candidate's response as a `.webm` file.
-- Uploaded via `FormData` to the backend.
+- Uploaded via `FormData` to the backend with `sessionId`, `candidateId`, and `questionNumber` as query parameters.
 - Backend stores the physical file and recording metadata in MongoDB.
 - Supports: **Start, Stop, Upload, Stream, Delete**.
 
@@ -501,6 +544,7 @@ All endpoints return a consistent response envelope via `ApiResponseDto<T>`:
 - Begins after required permissions are granted and continues throughout the session.
 - Supports: **Upload, Stream, Delete**.
 - Uses **MediaRecorder** + **MediaStream** browser APIs.
+- Screen share end is detected via the `ended` event on the display video track.
 
 ### Recording Data Flow
 
@@ -517,12 +561,40 @@ Camera / Microphone / Screen
       FormData Upload
             │
             ▼
-   /api/v1/recordings/upload
-   /api/v1/session-recordings/upload
+   /api/v1/recordings/upload/{sessionId}
+   /api/v1/session-recordings/upload/{sessionId}
             │
             ▼
     Recording Service → File Storage + MongoDB Metadata
 ```
+
+---
+
+## Event Queue & Beacon Batching
+
+Activity events generated during an interview are not sent individually in real time. Instead, they flow through a **client-side queue** before being delivered reliably to the backend.
+
+```text
+logEvent() / ActivityTracker.trackEvent()
+            │
+            ▼
+       EventQueue (localStorage)
+            │
+            ├── Batch threshold reached (10 events)
+            │         │
+            │         ▼
+            │   sendBeaconBatch() → POST /api/v1/activities/beacon-batch
+            │
+            └── Page hide / unload
+                      │
+                      ▼
+              flushWithBeacon() → POST /api/v1/activities/beacon-batch
+```
+
+- **`EventQueue`** — Persists events in `localStorage` with a monotonically increasing sequence number. Auto-flushes when the batch size threshold is reached.
+- **`ActivityTracker`** — Singleton that initialises and owns the `EventQueue`, registers global error and page-hide listeners, and exposes `trackEvent()` and `flush()`.
+- **`apiClient.sendBeaconBatch()`** — Serialises the event array as a JSON-encoded `FormData` field and delivers it via `navigator.sendBeacon()`.
+- **`POST /api/v1/activities/beacon-batch`** — Backend endpoint that deserialises the JSON payload, validates each event with FluentValidation, and persists the batch.
 
 ---
 
@@ -561,9 +633,9 @@ Hosted Background Service
 
 ### FluentValidation
 
-Validation is implemented for all request DTOs:
+Validation is implemented for all request models:
 
-**Activity Event Request**
+**Activity Event**
 - `SessionId` — Required
 - `CandidateId` — Required
 - `EventType` — Required
@@ -571,14 +643,14 @@ Validation is implemented for all request DTOs:
 - Maximum length validation
 - Metadata length validation
 
-**Interview Session Request**
+**Create Interview Session Request**
 - `SessionId` — Required
 - `CandidateId` — Required
 - `InterviewId` — Required
 - Maximum length validation
 
-**Session Status Update**
-- Must be one of: `IN_PROGRESS`, `COMPLETED`, `ABORTED`
+**Update Interview Session (Status)**
+- Status must be one of: `IN_PROGRESS`, `COMPLETED`, `ABORTED`
 
 ### Global Exception Middleware
 
@@ -589,7 +661,7 @@ UnauthorizedAccessException→  401 Unauthorized
 Unhandled Exception        →  500 Internal Server Error
 ```
 
-All error responses are returned as structured JSON via `ApiResponseDto`.
+All error responses are returned as structured JSON via `ApiResponse`.
 
 ---
 
@@ -600,12 +672,13 @@ All error responses are returned as structured JSON via `ApiResponseDto`.
 | MongoDB Indexes | Session, event type, timestamp queries |
 | Compound Index (`IX_SessionId_Timestamp`) | Ordered session timeline queries |
 | TTL Index (`TTL_ActivityEvents`) | Auto-removes events after 30 days |
+| Client-Side Event Queue | Events batched in `localStorage` before transmission |
+| Beacon API Batch Endpoint | Multiple events sent in one `sendBeacon` call |
 | Batch Event Upload | Multiple events in one API request |
 | Server-Side Pagination | Only the requested page is returned |
 | Recent Event Limit | Dashboard loads only N recent events |
 | Parallel Dashboard Requests | Stats + recent events fetched concurrently |
 | Parallel Session Detail Requests | Session info, events, recordings fetched concurrently |
-| Beacon API | Reliable event delivery on page unload |
 | MongoDB Singleton Client | Single MongoDB connection reused across requests |
 
 ---
@@ -628,6 +701,8 @@ All error responses are returned as structured JSON via `ApiResponseDto`.
 ```
 
 Update `ConnectionString` to match your local or deployment MongoDB instance.
+
+> **Note:** All `MongoDbSettings` fields are eagerly validated on startup. The application will fail to start if any setting is missing or empty.
 
 ### Frontend — `.env`
 
@@ -713,7 +788,8 @@ The application has been tested across the following areas:
 - Interview Session CRUD operations
 - Session status update validation
 - Single and batch activity event logging
-- Beacon API endpoint
+- Beacon API single-event endpoint
+- Beacon API batch endpoint (JSON-encoded form field)
 - Activity search, filtering, and pagination
 - Dashboard statistics API
 - Recent activity events API
@@ -728,20 +804,25 @@ The application has been tested across the following areas:
 - MongoDB data storage and retrieval
 - MongoDB index creation and usage
 - TTL retention policy
+- Fail-fast MongoDbSettings validation on startup
 
 ### Frontend
 
 - Dashboard overview and chart
 - Activity Events page with search, filter, and pagination
-- Interview Sessions list
+- Interview Sessions list with pagination
 - Session Details (info, timeline, summary, recordings)
 - Recording playback and deletion
 - Interview Landing → Permissions → Introduction → Questions flow
 - Question video playback and replay
 - Candidate question recording (MediaRecorder)
 - Complete session recording (screen + audio)
+- Screen share ended detection and interview abort
 - Interview completion flow
+- Client-side event queue (`EventQueue`) with `localStorage` persistence
+- Beacon batch delivery on page unload (`ActivityTracker`)
 - Browser activity tracking (all event types)
+- Application error and unhandled promise rejection tracking
 - Tab switching detection
 - Network online/offline events
 - Fullscreen enter/exit events
