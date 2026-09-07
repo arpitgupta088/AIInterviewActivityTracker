@@ -3,7 +3,6 @@ using AIInterviewActivityTracker.Configurations;
 using AIInterviewActivityTracker.Repositories;
 using AIInterviewActivityTracker.Interfaces;
 using AIInterviewActivityTracker.Middleware;
-using AIInterviewActivityTracker.Repositories;
 using AIInterviewActivityTracker.Services;
 using AIInterviewActivityTracker.Validators;
 using FluentValidation;
