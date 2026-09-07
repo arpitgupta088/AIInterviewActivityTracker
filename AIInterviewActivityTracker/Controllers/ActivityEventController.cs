@@ -1,4 +1,4 @@
-﻿using AIInterviewActivityTracker.Models;
+using AIInterviewActivityTracker.Models;
 using AIInterviewActivityTracker.Interfaces;
 using FluentValidation;
 using Microsoft.AspNetCore.Mvc;
@@ -113,15 +113,8 @@ namespace AIInterviewActivityTracker.Controllers
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
-
-            var validPage = page > 0
-                    ? page
-                    : 1;
-
-            var validPageSize =
-                pageSize > 0 && pageSize <= 100
-                    ? pageSize
-                    : 20;
+            var normalizedPage = page > 0 ? page : 1;
+            var normalizedPageSize = pageSize > 0 && pageSize <= 100 ? pageSize : 20;
 
             var (events, totalCount) =
                 await _eventService.GetFilteredEventsAsync(
@@ -129,14 +122,14 @@ namespace AIInterviewActivityTracker.Controllers
                     eventType,
                     startDate,
                     endDate,
-                    validPage,
-                    validPageSize);
+                    normalizedPage,
+                    normalizedPageSize);
 
             var response = new
             {
                 TotalCount = totalCount,
-                Page = validPage,
-                PageSize = validPageSize,
+                Page = normalizedPage,
+                PageSize = normalizedPageSize,
                 Events = events
             };
 

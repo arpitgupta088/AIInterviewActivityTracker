@@ -179,22 +179,13 @@ namespace AIInterviewActivityTracker.Services
             int page,
             int pageSize)
         {
-            var validPage = page > 0
-                ? page
-                : 1;
-
-            var validPageSize =
-                pageSize > 0 && pageSize <= 100
-                    ? pageSize
-                    : 20;
-
             return await _eventRepository.GetFilteredEventsAsync(
                 sessionId,
                 eventType,
                 startDate,
                 endDate,
-                validPage,
-                validPageSize);
-            } 
+                page,
+                pageSize);
         }
     }
+}
