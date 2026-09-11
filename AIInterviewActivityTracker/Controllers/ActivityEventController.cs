@@ -108,8 +108,11 @@ namespace AIInterviewActivityTracker.Controllers
         public async Task<IActionResult> SearchEvents(
             [FromQuery] string? sessionId,
             [FromQuery] string? eventType,
+            [FromQuery] string? module,
+            [FromQuery] string? searchTerm,
             [FromQuery] DateTime? startDate,
             [FromQuery] DateTime? endDate,
+            [FromQuery] string? sortOrder,
             [FromQuery] int page = 1,
             [FromQuery] int pageSize = 20)
         {
@@ -120,8 +123,11 @@ namespace AIInterviewActivityTracker.Controllers
                 await _eventService.GetFilteredEventsAsync(
                     sessionId,
                     eventType,
+                    module,
+                    searchTerm,
                     startDate,
                     endDate,
+                    sortOrder,
                     normalizedPage,
                     normalizedPageSize);
 

@@ -24,9 +24,9 @@ import recordingService from "../services/recordingService";
 
 import {
   getSessionById,
-  getSessionEvents,
   getInterviewSummary,
   generateInterviewSummary,
+  searchEvents,
 } from "../services/interviewService";
 
 /**
@@ -35,12 +35,19 @@ import {
  */
 function SessionDetails() {
   const { sessionId } = useParams();
+  const EVENT_PAGE_SIZE = 10;
 
   // Responsive sidebar state for mobile offcanvas
   const [showSidebar, setShowSidebar] = useState(false);
 
   const [sessionData, setSessionData] = useState(null);
   const [eventsData, setEventsData] = useState([]);
+  const [eventPage, setEventPage] = useState(1);
+  const [eventTotalCount, setEventTotalCount] = useState(0);
+  const [eventSearchTerm, setEventSearchTerm] = useState("");
+  const [eventTypeFilter, setEventTypeFilter] = useState("ALL");
+  const [moduleFilter, setModuleFilter] = useState("ALL");
+  const [eventSortOrder, setEventSortOrder] = useState("LATEST");
   const [summaryData, setSummaryData] = useState(null);
   const [generatingSummary, setGeneratingSummary] = useState(false);
   const [recordings, setRecordings] = useState([]);
@@ -51,6 +58,12 @@ function SessionDetails() {
   const [sessionRecordingError, setSessionRecordingError] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const totalEventPages = Math.ceil(eventTotalCount / EVENT_PAGE_SIZE);
+
+  const resetEventPage = () => {
+    setEventPage(1);
+  };
 
   /**
  * Generates an interview summary for the current session and
@@ -105,9 +118,8 @@ function SessionDetails() {
         setLoading(true);
         setError("");
 
-        const [sessionResponse, eventsResponse, recordingsResponse, sessionRecordingResponse] = await Promise.all([
+        const [sessionResponse, recordingsResponse, sessionRecordingResponse] = await Promise.all([
           getSessionById(sessionId),
-          getSessionEvents(sessionId),
 
           recordingService.getRecordingsBySessionId(sessionId),
 
@@ -130,15 +142,9 @@ function SessionDetails() {
 
         const session = sessionResponse?.data ?? sessionResponse ?? null;
 
-        const events = Array.isArray(eventsResponse?.data) ? eventsResponse.data
-          : Array.isArray(eventsResponse)
-            ? eventsResponse
-            : [];
-
         const summary = summaryResponse?.data ?? summaryResponse ?? null;
 
         setSessionData(session);
-        setEventsData(events);
         setSummaryData(summary);
 
       } catch (error) {
@@ -155,8 +161,65 @@ function SessionDetails() {
     fetchSessionDetails();
   }, [sessionId]);
 
+  useEffect(() => {
+    const loadSessionEvents = async () => {
+      if (!sessionId?.trim()) {
+        return;
+      }
+
+      try {
+        const response = await searchEvents({
+          sessionId,
+          eventType:
+            eventTypeFilter === "ALL"
+              ? undefined
+              : eventTypeFilter,
+
+          module:
+            moduleFilter === "ALL"
+              ? undefined
+              : moduleFilter,
+
+          searchTerm:
+            eventSearchTerm.trim() || undefined,
+
+          sortOrder: eventSortOrder,
+
+          page: eventPage,
+          pageSize: EVENT_PAGE_SIZE,
+        });
+
+        const result = response?.data ?? response;
+
+        setEventsData(
+          Array.isArray(result?.events)
+            ? result.events
+            : []
+        );
+
+        setEventTotalCount(
+          Number.isInteger(result?.totalCount)
+            ? result.totalCount
+            : 0
+        );
+      } catch (error) {
+        console.error(
+          "Failed to load session events:",
+          error
+        );
+      }
+    };
+
+    loadSessionEvents();
+  }, [sessionId,
+    eventPage,
+    eventSearchTerm,
+    eventTypeFilter,
+    moduleFilter,
+    eventSortOrder,]);
+
   const activitySummary = {
-    totalEvents: eventsData.length,
+     totalEvents: eventTotalCount,
 
     tabSwitches: eventsData.filter(
       (event) => event.eventType === "TAB_SWITCHED"
@@ -256,7 +319,58 @@ function SessionDetails() {
 
           }}
         />
-        <SessionEventTable events={eventsData} />
+        <SessionEventTable
+          events={eventsData}
+          searchTerm={eventSearchTerm}
+          totalCount={eventTotalCount}
+          eventTypeFilter={eventTypeFilter}
+          moduleFilter={moduleFilter}
+          sortOrder={eventSortOrder}
+          onSearchChange={(value) => {
+            setEventSearchTerm(value);
+            resetEventPage();
+          }}
+          onEventTypeChange={(value) => {
+            setEventTypeFilter(value);
+            resetEventPage();
+          }}
+          onModuleChange={(value) => {
+            setModuleFilter(value);
+            resetEventPage();
+          }}
+          onSortOrderChange={(value) => {
+            setEventSortOrder(value);
+            resetEventPage();
+          }}
+        />
+
+        {eventTotalCount > 0 && (
+          <div className="d-flex justify-content-between align-items-center mt-4">
+            <button
+              className="btn btn-outline-primary"
+              disabled={eventPage === 1}
+              onClick={() =>
+                setEventPage(previous => previous - 1)
+              }
+            >
+              Previous
+            </button>
+
+            <span className="fw-semibold">
+              Page {eventPage} of {totalEventPages}
+            </span>
+
+            <button
+              className="btn btn-outline-primary"
+              disabled={eventPage >= totalEventPages}
+              onClick={() =>
+                setEventPage(previous => previous + 1)
+              }
+            >
+              Next
+            </button>
+          </div>
+        )}
       </>
     );
   };

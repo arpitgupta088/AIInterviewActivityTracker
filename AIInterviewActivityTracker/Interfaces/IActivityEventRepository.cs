@@ -38,8 +38,11 @@ namespace AIInterviewActivityTracker.Interfaces
         Task<(List<ActivityEvent> Events, long TotalCount)> GetFilteredEventsAsync(
             string? sessionId,
             string? eventType,
+            string? module,
+            string? searchTerm,
             DateTime? startDate,
             DateTime? endDate,
+            string? sortOrder,
             int page,
             int pageSize);
     }

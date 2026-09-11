@@ -33,6 +33,26 @@ const EVENT_LABELS = {
   SESSION_RECORDING_UPLOADED: "Session Recording Uploaded",
 };
 
+const EVENT_TYPES = [
+  ...Object.keys(EVENT_LABELS),
+  "NETWORK_OFFLINE",
+  "NETWORK_ONLINE",
+  "PAGE_LOAD",
+  "PAGE_LEFT",
+  "PAGE_UNLOAD",
+  "TAB_HIDDEN",
+  "TAB_VISIBLE",
+  "APPLICATION_ERROR",
+  "UNHANDLED_PROMISE_REJECTION",
+];
+
+const MODULES = [
+  "INTERVIEW",
+  "INTRO",
+  "PERMISSION",
+  "BROWSER_LIFECYCLE",
+];
+
 const formatEventType = (eventType) => {
   if (!eventType) {
     return "Unknown Event";
@@ -150,79 +170,22 @@ const formatMetadata = (metadataJson) => {
     : "—";
 };
 
-function SessionEventTable({ events = [] }) {
-  const [searchTerm, setSearchTerm] = useState("");
-  const [eventTypeFilter, setEventTypeFilter] = useState("ALL");
-  const [moduleFilter, setModuleFilter] = useState("ALL");
-  const [sortOrder, setSortOrder] = useState("LATEST");
+function SessionEventTable({
+  events = [],
+  totalCount = 0,
+  searchTerm,
+  eventTypeFilter,
+  moduleFilter,
+  sortOrder,
+  onSearchChange,
+  onEventTypeChange,
+  onModuleChange,
+  onSortOrderChange,
+}) {
   const [viewMode, setViewMode] = useState("TABLE");
   const safeEvents = Array.isArray(events) ? events : [];
 
-  const eventTypes = useMemo(
-    () => [
-      ...new Set(
-        safeEvents
-          .map((event) => event.eventType).filter(Boolean)
-      ),
-    ],
-    [safeEvents]
-  );
-
-  const modules = useMemo(
-    () => [
-      ...new Set(
-        safeEvents
-          .map((event) => event.module)
-          .filter(Boolean)
-      ),
-    ],
-    [safeEvents]
-  );
-
-  const filteredEvents = useMemo(() => {
-    const normalizedSearch = searchTerm.trim().toLowerCase();
-
-    const filtered = safeEvents.filter((event) => {
-
-      const metadataText = formatMetadata(event.metadataJson).toLowerCase();
-      const matchesSearch =
-        !normalizedSearch ||
-        event.eventType?.toLowerCase().includes(normalizedSearch) ||
-        event.module?.toLowerCase().includes(normalizedSearch) ||
-        formatEventType(event.eventType)
-          .toLowerCase()
-          .includes(normalizedSearch) || metadataText.includes(normalizedSearch);
-
-      const matchesEventType =
-        eventTypeFilter === "ALL" ||
-        event.eventType === eventTypeFilter;
-
-      const matchesModule =
-        moduleFilter === "ALL" ||
-        event.module === moduleFilter;
-
-      return (
-        matchesSearch &&
-        matchesEventType &&
-        matchesModule
-      );
-    });
-
-    return [...filtered].sort((a, b) => {
-      const sequenceA = Number(a.sequenceNumber) || 0;
-      const sequenceB = Number(b.sequenceNumber) || 0;
-
-      return sortOrder === "LATEST"
-        ? sequenceB - sequenceA
-        : sequenceA - sequenceB;
-    });
-  }, [
-    safeEvents,
-    searchTerm,
-    eventTypeFilter,
-    moduleFilter,
-    sortOrder,
-  ]);
+  const filteredEvents = safeEvents;
 
   const networkTimelineEvents = useMemo(() => {
     const networkEvents = safeEvents.filter(
@@ -264,7 +227,7 @@ function SessionEventTable({ events = [] }) {
           </div>
 
           <span className="badge bg-secondary">
-            {filteredEvents.length} event {filteredEvents.length === 1 ? "" : "s"}
+            {totalCount} event {totalCount === 1 ? "" : "s"}
           </span>
         </div>
       </Card.Header>
@@ -276,18 +239,18 @@ function SessionEventTable({ events = [] }) {
               type="search"
               placeholder="Search events..."
               value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
+              onChange={(e) => onSearchChange(e.target.value)}
             />
           </Col>
 
           <Col md={3}>
             <Form.Select
               value={eventTypeFilter}
-              onChange={(e) => setEventTypeFilter(e.target.value)}
+              onChange={(e) => onEventTypeChange(e.target.value)}
             >
               <option value="ALL">All Event Types</option>
 
-              {eventTypes.map((eventType) => (
+              {EVENT_TYPES.map((eventType) => (
                 <option key={eventType} value={eventType}>
                   {formatEventType(eventType)}
                 </option>
@@ -298,11 +261,11 @@ function SessionEventTable({ events = [] }) {
           <Col md={2}>
             <Form.Select
               value={moduleFilter}
-              onChange={(e) => setModuleFilter(e.target.value)}
+              onChange={(e) => onModuleChange(e.target.value)}
             >
               <option value="ALL">All Modules</option>
 
-              {modules.map((module) => (
+              {MODULES.map((module) => (
                 <option key={module} value={module}>
                   {module}
                 </option>
@@ -313,7 +276,7 @@ function SessionEventTable({ events = [] }) {
           <Col md={2}>
             <Form.Select
               value={sortOrder}
-              onChange={(e) => setSortOrder(e.target.value)}
+              onChange={(e) => onSortOrderChange(e.target.value)}
             >
               <option value="LATEST">Latest First</option>
               <option value="OLDEST">Oldest First</option>
