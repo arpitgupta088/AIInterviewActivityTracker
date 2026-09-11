@@ -114,8 +114,11 @@ namespace AIInterviewActivityTracker.Repositories
         public async Task<(List<ActivityEvent> Events, long TotalCount)> GetFilteredEventsAsync(
             string? sessionId,
             string? eventType,
+            string? module,
+            string? searchTerm,
             DateTime? startDate,
             DateTime? endDate,
+            string? sortOrder,
             int page,
             int pageSize)
         {
@@ -146,6 +149,37 @@ namespace AIInterviewActivityTracker.Repositories
                     new BsonRegularExpression(searchText, "i"));
             }
 
+            if (!string.IsNullOrWhiteSpace(module))
+            {
+                var searchText = Regex.Escape(module.Trim());
+
+                filter &= builder.Regex(
+                    e => e.Module,
+                    new BsonRegularExpression(searchText, "i"));
+            }
+
+            if (!string.IsNullOrWhiteSpace(searchTerm))
+            {
+                var searchText = Regex.Escape(searchTerm.Trim());
+
+                var eventTypeFilter = builder.Regex(
+                    e => e.EventType,
+                    new BsonRegularExpression(searchText, "i"));
+
+                var moduleFilter = builder.Regex(
+                    e => e.Module,
+                    new BsonRegularExpression(searchText, "i"));
+
+                var metadataFilter = builder.Regex(
+                    e => e.MetadataJson,
+                    new BsonRegularExpression(searchText, "i"));
+
+                filter &= builder.Or(
+                    eventTypeFilter,
+                    moduleFilter,
+                    metadataFilter);    
+            }
+
             if (startDate.HasValue)
             {
                 filter &= builder.Gte(
@@ -163,16 +197,33 @@ namespace AIInterviewActivityTracker.Repositories
             var totalCount =
                 await _eventsCollection.CountDocumentsAsync(filter);
 
-            var events =
-                await _eventsCollection
-                    .Find(filter)
+            var query = _eventsCollection
+                .Find(filter);
+
+            if (string.Equals(
+                sortOrder,
+                "OLDEST",
+                StringComparison.OrdinalIgnoreCase))
+            {
+                query = query
+                .SortBy(e => e.Timestamp)
+                .ThenBy(e => e.SequenceNumber)
+                .ThenBy(e => e.CreatedAt);
+            }
+            else
+            {
+                query = query
                     .SortByDescending(e => e.Timestamp)
-                    .ThenByDescending(e => e.CreatedAt)
-                    .Skip((page - 1) * pageSize)
-                    .Limit(pageSize)
-                    .ToListAsync();
+                    .ThenByDescending(e => e.SequenceNumber)
+                    .ThenByDescending(e => e.CreatedAt);
+            }
+
+            var events = await query
+                .Skip((page - 1) * pageSize)
+                .Limit(pageSize)
+                .ToListAsync();
 
             return (events, totalCount);
+}
         }
-    }
 }

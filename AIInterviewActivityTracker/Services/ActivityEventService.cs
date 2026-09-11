@@ -174,16 +174,22 @@ namespace AIInterviewActivityTracker.Services
         public async Task<(List<ActivityEvent> Events, long TotalCount)> GetFilteredEventsAsync(
             string? sessionId,
             string? eventType,
+            string? module,
+            string? searchTerm,
             DateTime? startDate,
             DateTime? endDate,
+            string? sortOrder,
             int page,
             int pageSize)
         {
             return await _eventRepository.GetFilteredEventsAsync(
                 sessionId,
                 eventType,
+                module,
+                searchTerm,
                 startDate,
                 endDate,
+                sortOrder,
                 page,
                 pageSize);
         }
